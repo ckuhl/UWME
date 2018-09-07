@@ -1,6 +1,10 @@
 # MIPS VM
 A virtual machine emulating a MIPS virtual machine.
 
+## Project structure
+- `mips-vm.rkt` is the root project
+- `constants.rkt` stores only constants (e.g. bitmasks, opcodes, etc.)
+
 ## Read more
 You can read more about the development process as I blogged it.
 
