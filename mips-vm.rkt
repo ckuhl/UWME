@@ -1,46 +1,17 @@
 #lang racket
 
-(require "constants.rkt")
-(require "alu.rkt")
-(require "ops.rkt")
+(require racket/format) ; Output while running
 
-;; TODO Style of the program
-; - modularize the code more
-; - documentation
-; - Racket best practices(?)
-; - create better error handling functionality
-
-;; TODO Structure of the program
-; 0 [X] Define necessary tools
-; 0.1 [X] Constants
-; 0.2 [X] Structs
-; 1 [X] Set up
-; 1.1 [X] Initialize "hardware"
-; 1.1.0 [ ] Take command-line arguments (https://docs.racket-lang.org/reference/Command-Line_Parsing.html)
-; 1.1.1 [X] Create `registers`
-; 1.1.2 [X] Update intial register values
-; 1.1.3 [X] Set $31 to contain exit address
-; 1.1.4 [X] Set $30 to point past MEM[n] (i.e. stack pointer):q
-; 1.1.5 [X] Create Memory
-; 1.1.6 [ ] Update initial memory contents from binary file (https://docs.racket-lang.org/binaryio/index.html)
-; 2 [X] Fetch
-; 2.1 [X] $IR <- MEM[$PC]
-; 2.2 [X] $PC <- PC + 4
-; 3 [X] Decode
-; 3.1 [X] Split word in $IR into fields
-; 4. [X] Execute (recurse)
-; 4.1 [X] Switch on `opcode` field
-; 4.1.1 [X] [IF `opcode` = ALUop] Switch on `funct` field
-; 4.1.1.1 [ ] [IF `funct` = `lw`] Handle `lw` for MMIO
-; 4.1.1.2 [ ] [IF `funct` = `sw`] Handle `sw` for MMIO
-; 4.2 [X] Perform operation as necessary
-; 5 [ ] Wind down
-; 5.1 [ ] Print out registers
-; 5.2 [ ] Print output (error message / nothing)
-; 5.3 [ ] Return code
+(require "constants.rkt") ; numeric constants, bit masks, etc.
+(require "alu.rkt") ; ALU operations for R-type instructions
+(require "ops.rkt") ; CPU operations
+(require "sparse-list.rkt") ; Custom list data structure (access list as array)
 
 
-;; Initialize registers
+(define MEMORY-SIZE #x01000000)
+(define MEMORY-LOAD-OFFSET #x00000000)
+
+; Initialize registers
 (define registers
   (make-immutable-hash (append (for/list ([i (range 0 30)]) (cons i 0))
 			       (list
@@ -54,12 +25,13 @@
 				 (cons 'MDR 0)))))
 
 ;; Initialize memory
-(define m (make-list 1000000 0))
+(define m (make-sparse-list MEMORY-SIZE MEMORY-LOAD-OFFSET))
+
 ;; Copy payload over memory at region given by offset
 (define (mem-loader memory payload [offset 0])
   (cond
     [(empty? payload) memory]
-    [else (mem-loader (list-set memory offset (car payload))
+    [else (mem-loader (sparse-list-set memory offset (car payload))
 		      (cdr payload)
 		      (+ 1 offset))]))
 
@@ -81,15 +53,21 @@
 ; fetch
 (define (fetch registers mem)
   (if (equal? (hash-ref registers 'PC) return-address) (exit 0) #t)
+
+  (define next-ir
+    (+
+      (arithmetic-shift (sparse-list-ref mem (+ 0 (hash-ref registers 'PC))) 24)
+      (arithmetic-shift (sparse-list-ref mem (+ 1 (hash-ref registers 'PC))) 16)
+      (arithmetic-shift (sparse-list-ref mem (+ 2 (hash-ref registers 'PC)))  8)
+      (arithmetic-shift (sparse-list-ref mem (+ 3 (hash-ref registers 'PC)))  0)))
+
+  (printf "~a ~n" (~r next-ir #:base 2 #:min-width 32 #:pad-string "0")) ; Output while running
+
   (decode
     (hash-set
       (hash-set registers
 		'IR
-		(+
-		  (arithmetic-shift (list-ref mem (+ 0 (hash-ref registers 'PC))) 24)
-		  (arithmetic-shift (list-ref mem (+ 1 (hash-ref registers 'PC))) 16)
-		  (arithmetic-shift (list-ref mem (+ 2 (hash-ref registers 'PC)))  8)
-		  (arithmetic-shift (list-ref mem (+ 3 (hash-ref registers 'PC)))  0)))
+		next-ir)
       'PC
       (+ (hash-ref registers 'PC) word-size))
     mem))
