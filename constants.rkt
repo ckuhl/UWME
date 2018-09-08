@@ -37,27 +37,56 @@
 ;; J-type
 (define   address-mask #b00000011111111111111111111111111)
 
+; Offsets ====================================================================
+(define opcode-offset -26)
+(define rs-offset -21)
+(define rt-offset -16)
+(define rd-offset -11)
+(define shamt-offset -6)
+(define funct-offset 0)
+(define immediate-offset 0)
+(define address-offset 0)
+
+
 
 ; opcodes ====================================================================
-(define r-type #b000000)
-(define     lw #b100011)
-(define     sw #b101011)
-(define    beq #b000100)
-(define    bne #b000101)
+(define r-type-opcode #b000000)
+(define     lw-opcode #b100011)
+(define     sw-opcode #b101011)
+(define    beq-opcode #b000100)
+(define    bne-opcode #b000101)
 
 
 ; R-type funct codes =========================================================
-(define   add #b100000)
-(define   sub #b100001)
-(define  mult #b011000)
-(define multu #b011001)
-(define   div #b011010)
-(define  divu #b011011)
-(define  mfhi #b010000)
-(define  mflo #b010010)
-(define   lis #b010100)
-(define   slt #b101010)
-(define  sltu #b101011)
-(define    jr #b001000)
-(define  jalr #b001001)
+(define   add-funct #b100000)
+(define   sub-funct #b100001)
+(define  mult-funct #b011000)
+(define multu-funct #b011001)
+(define   div-funct #b011010)
+(define  divu-funct #b011011)
+(define  mfhi-funct #b010000)
+(define  mflo-funct #b010010)
+(define   lis-funct #b010100)
+(define   slt-funct #b101010)
+(define  sltu-funct #b101011)
+(define    jr-funct #b001000)
+(define  jalr-funct #b001001)
+
+
+;; Special addresses ============================================================
+(define return-address #x8123456c)
+
+; next byte of stdin will be placed into LSB of dest register
+(define     MMIO-input #xffff0004)
+
+; if you sw here, the LSB will be written out
+(define    MMIO-output #xFFFF000C)
+
+; TODO: Default stack pointer
+(define stack-pointer  #x01000000)
+
+
+;; Magic values
+; size of word in bytes
+(define word-size 4)
 
