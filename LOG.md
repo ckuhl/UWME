@@ -1,23 +1,18 @@
 # Work log
-## 2018-09-06
-### Morning (0.74 hours)
-- defined most bitmask constants in "constants.rkt"
-
-
-## 2018-09-07
-### Morning (0.75 hours)
-- define decoded word struct in "mips-vm.rkt"
-- define opcodes and functions in "constants.rkt"
-
-### Noon (0.5 hours)
-- fix module import / exports
-- get "mips-vm.rkt" running
-
-### Evening (4.5 hours)
-- wrote fetch-decode-execute loop
-- debugged until simple program ran
-
 ## 2018-09-08
+### Evening (4 hours)
+- modularized code
+- learned about `define/contract`
+- add contracts to "ops.rkt"
+- fixed `sw` mmio
+
+### Noon (4 hours)
+- added MMIO for lw and sw instructions
+- added contracts to the ALU
+- implemented signed/unsigned logic
+- fixed logical error in operations using $HI:$LO
+- fixed logical error in lis
+
 ### Morning (2 hours)
 - wrote sparse list library
 	- stores list indexes in an array only when they're inserted
@@ -30,3 +25,21 @@
 		- apply on struct creation, can use without exporting struct
 - wrote [TODO.md](./TODO.md) as place to store all improvements
 
+
+
+## 2018-09-07
+### Evening (4.5 hours)
+- wrote fetch-decode-execute loop
+- debugged until simple program ran
+
+### Noon (0.5 hours)
+- fix module import / exports
+- get "mips-vm.rkt" running
+
+### Morning (0.75 hours)
+- define decoded word struct in "mips-vm.rkt"
+- define opcodes and functions in "constants.rkt"
+
+## 2018-09-06
+### Morning (0.74 hours)
+- defined most bitmask constants in "constants.rkt"

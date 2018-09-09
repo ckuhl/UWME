@@ -1,11 +1,11 @@
 #lang racket
-(provide (contract-out [make-sparse-list make-sparse-list-contract]
-		       [sparse-list-ref sparse-list-ref-contract]
-		       [sparse-list-set sparse-list-set-contract]))
+(provide make-sparse-list
+	 sparse-list-ref
+	 sparse-list-set
+	 sparse-list?)
 
 ;; internal sparse list representation
 ;; Num Num Hash -> sparse-list
-
 (struct sparse-list (k default _hash)
   #:transparent
   #:guard (lambda (k v i name)
@@ -17,13 +17,15 @@
 	      [else (values k v i)])))
 
 ;; Create a new sparse list
-(define make-sparse-list-contract (exact-nonnegative-integer? any/c . -> . sparse-list?))
-(define (make-sparse-list k v)
+(define/contract
+  (make-sparse-list k v)
+  (exact-nonnegative-integer? any/c . -> . sparse-list?)
   (sparse-list k v (make-immutable-hash)))
 
 ;; Get element at index
-(define sparse-list-ref-contract (sparse-list? exact-nonnegative-integer? . -> . any/c))
-(define (sparse-list-ref lst pos)
+(define/contract
+  (sparse-list-ref lst pos)
+  (sparse-list? exact-nonnegative-integer? . -> . any/c)
   (if (or
 	(> pos (sparse-list-k lst))
 	(< pos 0))
@@ -34,9 +36,9 @@
 	    (lambda () (sparse-list-default lst))))
 
 ;; Set element at index
-;; sparse-list Num (any?) -> sparse-list
-(define sparse-list-set-contract (sparse-list? exact-nonnegative-integer? any/c . -> . sparse-list?))
-(define (sparse-list-set lst pos v)
+(define/contract
+  (sparse-list-set lst pos v)
+  (sparse-list? exact-nonnegative-integer? any/c . -> . sparse-list?)
   (sparse-list (sparse-list-k lst)
 	       (sparse-list-default lst)
 	       (hash-set (sparse-list-_hash lst) pos v)))

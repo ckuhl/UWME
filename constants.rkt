@@ -37,6 +37,11 @@
 ;; J-type
 (define   address-mask #b00000011111111111111111111111111)
 
+;; Other
+(define hi-result-mask #b11111111111111111111111111111111000000000000000000000000000000000)
+(define lo-result-mask #b00000000000000000000000000000000111111111111111111111111111111111)
+(define       lsb-mask #x00000000000000000000000011111111)
+
 ; Offsets ====================================================================
 (define opcode-offset -26)
 (define rs-offset -21)
@@ -77,14 +82,15 @@
 (define return-address #x8123456c)
 
 ; next byte of stdin will be placed into LSB of dest register
-(define     MMIO-input #xffff0004)
+(define     mmio-read-address #xffff0004)
 
 ; if you sw here, the LSB will be written out
-(define    MMIO-output #xFFFF000C)
+(define    mmio-write-address #xFFFF000C)
 
-; TODO: Default stack pointer
+; TODO find way to optionally override default values
 (define stack-pointer  #x01000000)
-
+(define MEMORY-SIZE #x01000000)
+(define MEMORY-LOAD-OFFSET #x00000000)
 
 ;; Magic values
 ; size of word in bytes

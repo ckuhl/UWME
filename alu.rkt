@@ -1,51 +1,88 @@
 #lang racket
-(provide (all-defined-out))
 
+(provide add sub mult multu div divu mfhi mflo lis slt sltu jr jalr unsigned->signed signed->unsigned)
+
+(require racket/format) ; output
+(require "constants.rkt")
+(require "sparse-list.rkt") ; for MEM
+
+(define (valid-register? r) (<= #b00000 r #b11111))
+(define one-reg-contract (valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
+(define two-reg-contract (valid-register? valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
+(define three-reg-contract (valid-register? valid-register? valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
+
+;; Concert a decimal number representing an unsigned binary value to the
+;equivalent value if the binary was signed
+(define/contract
+  (unsigned->signed number size)
+  (->i ([x (y) (and/c exact-nonnegative-integer? (between/c 0 (expt 2 y)))]
+	[y exact-positive-integer?])
+       [result integer?])
+  (cond
+    [(>= number (expt 2 (sub1 size)))
+     (- number (arithmetic-shift 1 size))]
+    [else number]))
+
+(define/contract
+  (signed->unsigned number size)
+  (->i ([x (y) (and/c exact-integer? (between/c (- (expt 2 (sub1 y))) (sub1 (expt 2 (sub1 y)))))]
+	[y exact-positive-integer?])
+       [result integer?])
+  (cond
+    [negative?
+     (+ number (arithmetic-shift 1 size))]
+    [else number]))
 
 ; add :: $d = $s + $t
-(define (add rs rt rd registers)
+(define/contract
+  (add rs rt rd registers)
+  three-reg-contract
   (hash-set registers
 	    rd
 	    (+ (hash-ref registers rs)
 	       (hash-ref registers rt))))
 
 ; sub :: $d = $s - $t
-(define (sub rs rt rd registers)
+(define/contract
+  (sub rs rt rd registers)
+  three-reg-contract
   (hash-set registers
 	    rd
 	    (- (hash-ref rs)
 	       (hash-ref rt))))
 
 ;; mult :: $HI:$LO = $rs * $rd
-;; TODO
-;; Determine how to do un/signed math differently in Racket
-(define (mult rs rt registers)
+(define/contract
+  (mult rs rt registers)
+  two-reg-contract
+  (define s (hash-ref registers rs))
+  (define t (hash-ref registers rt))
   (hash-set
     (hash-set
+      registers
       'HI
-      (bitwise-and #xffffffff00000000
-		   (* rs rt)))
+      (arithmetic-shift (bitwise-and (* s t) hi-result-mask) -32))
     'LO
-    (bitwise-and #x00000000ffffffff
-		 (* rs rt))))
+    (bitwise-and (* s t) lo-result-mask)))
 
 ;; multu :: $HI:$LO = $rs * $rt
-;; TODO
-;; Determine how to do un/signed math differently in Racket
-(define (multu rs rt registers)
+(define/contract
+  (multu rs rt registers)
+  two-reg-contract
+  (define s (signed->unsigned (hash-ref registers rs) 32))
+  (define t (signed->unsigned (hash-ref registers rt) 32))
   (hash-set
     (hash-set
+      registers
       'HI
-      (bitwise-and #xffffffff00000000
-		   (* rs rt)))
+      (arithmetic-shift (bitwise-and (* s t) hi-result-mask) -32))
     'LO
-    (bitwise-and #x00000000ffffffff
-		 (* rs rt))))
+    (bitwise-and (* s t) lo-result-mask)))
 
 ;; div :: $LO = $s / $t, $HI = $s % $t
-;; TODO
-;; Determine how to do un/signed math differently in Racket
-(define (div rs rt registers)
+(define/contract
+  (div rs rt registers)
+  two-reg-contract
   (if (= rt 0) (raise-user-error "CPU error: Division by zero") #t)
   (hash-set
     (hash-set 'HI (remainder rs rt))
@@ -53,33 +90,50 @@
     (quotient rs rt)))
 
 ;; divu :: $LO = $s / $t, $HI = $s % $t
-;; TODO
-;; Determine how to do un/signed math differently in Racket
-(define (divu rs rt registers)
-  (if (= rt 0) (raise-user-error "CPU error: Division by zero") #t)
+(define/contract
+  (divu rs rt registers)
+  two-reg-contract
+  (define s (signed->unsigned (hash-ref registers rs) 32))
+  (define t (signed->unsigned (hash-ref registers rt) 32))
+  (if (= t 0) (raise-user-error "CPU error: Division by zero") #t)
   (hash-set
-    (hash-set 'HI (remainder rs rt))
+    (hash-set 'HI (remainder s t))
     'LO
-    (quotient rs rt)))
+    (quotient s t)))
 
 ;; mfhi :: $d = $HI
-(define (mfhi rd registers)
+(define/contract
+  (mfhi rd registers)
+  one-reg-contract
   (hash-set registers rd (hash-ref 'HI)))
 
 ;; mflo :: $d = $LO
-(define (mflo rd registers)
+(define/contract
+  (mflo rd registers)
+  one-reg-contract
   (hash-set registers rd (hash-ref 'LO)))
 
 
-;; lis :: d = MEM[pc]
-;; TODO
-(define (lis rd registers mem)
-  (hash-set registers rd (list-ref mem (hash-ref 'PC))))
+;; lis :: d = MEM[pc]; pc += 4
+(define/contract
+  (lis rd registers mem)
+  (valid-register? (and/c hash? hash-equal? immutable?) sparse-list? . -> . (and/c hash? hash-equal? immutable?))
+  (define loaded
+    (unsigned->signed
+      (+
+	(arithmetic-shift (sparse-list-ref mem (+ 0 (hash-ref registers 'PC))) 24)
+	(arithmetic-shift (sparse-list-ref mem (+ 1 (hash-ref registers 'PC))) 16)
+	(arithmetic-shift (sparse-list-ref mem (+ 2 (hash-ref registers 'PC)))  8)
+	(arithmetic-shift (sparse-list-ref mem (+ 3 (hash-ref registers 'PC)))  0)) 32))
+  (hash-set
+    (hash-set registers rd loaded)
+    'PC
+    (+ 4 (hash-ref registers 'PC))))
 
 ;; slt :: $d = 1 if $s < $t; 0 otherwise
-;; TODO
-;; Determine how to do un/signed math differently in Racket
-(define (slt rs rt rd registers)
+(define/contract
+  (slt rs rt rd registers)
+  three-reg-contract
   (hash-set registers
 	    rd
 	    (cond
@@ -87,23 +141,29 @@
 	      [else 0])))
 
 ;; sltu :: $d = 1 if $s < $t; 0 otherwise
-;; TODO
-;; Determine how to do un/signed math differently in Racket
-(define (sltu rs rt rd registers)
+(define/contract
+  (sltu rs rt rd registers)
+  three-reg-contract
+  (define s (signed->unsigned (hash-ref registers rs) 32))
+  (define t (signed->unsigned (hash-ref registers rt) 32))
   (hash-set registers
 	    rd
 	    (cond
-	      [(< rs rt) 1]
+	      [(< s t) 1]
 	      [else 0])))
 
 ;; jr :: pc = $s
-(define (jr rs registers)
+(define/contract
+  (jr rs registers)
+  one-reg-contract
   (hash-set registers
 	    'PC
 	    (hash-ref registers rs)))
 
 ;; jalr :: temp = $s; $31 = pc; $PC = temp
-(define (jalr rs registers)
+(define/contract
+  (jalr rs registers)
+  one-reg-contract
   (hash-set
     (hash-set registers rs (hash-ref registers 'PC))
     'PC
