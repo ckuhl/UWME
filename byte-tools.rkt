@@ -12,8 +12,7 @@
 					(address (and/c exact-nonnegative-integer? (between/c 0 (expt 2 26)))))])
 	 make-decoded)
 
-(require "constants.rkt")
-(require "sparse-list.rkt")
+(require "constants.rkt") ; magic numbers
 
 (struct decoded (opcode rs rt rd shamt funct immediate address)
   #:transparent)

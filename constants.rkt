@@ -1,5 +1,6 @@
 #lang racket
-(provide (all-defined-out))
+
+(provide (all-defined-out)) ; only magic numbers in here
 
 ; Bit masks ==================================================================
 ;    bit 31                                 bit 0

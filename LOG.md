@@ -1,4 +1,12 @@
 # Work log
+## 2018-09-09
+### Noon (1 hour)
+- added licence (AGPLv3)
+- added self-documenting Makefile
+- added .gitignore
+- install racket7.0
+- clean up "(require ...)" imports
+
 ## 2018-09-08
 ### Evening (4 hours)
 - modularized code

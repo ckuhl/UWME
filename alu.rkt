@@ -2,9 +2,9 @@
 
 (provide add sub mult multu div divu mfhi mflo lis slt sltu jr jalr unsigned->signed signed->unsigned)
 
-(require racket/format) ; output
-(require "constants.rkt")
-(require "sparse-list.rkt") ; for MEM
+(require racket/format ; output
+	 "constants.rkt" ; magic numbers
+	 "sparse-list.rkt") ; for operating on MEM
 
 (define (valid-register? r) (<= #b00000 r #b11111))
 (define one-reg-contract (valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
@@ -30,7 +30,7 @@
        [result integer?])
   (cond
     [negative?
-     (+ number (arithmetic-shift 1 size))]
+      (+ number (arithmetic-shift 1 size))]
     [else number]))
 
 ; add :: $d = $s + $t

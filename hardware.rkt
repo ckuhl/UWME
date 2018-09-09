@@ -2,11 +2,11 @@
 
 ; Stores the "hardware" (= registers and MEM)
 
-(provide initialize-registers initialize-memory)
+(provide initialize-registers initialize-memory load-bytes-from-stdin)
 
-(require "constants.rkt")
-(require "sparse-list.rkt")
-(require "alu.rkt")
+(require "constants.rkt" ; magic numbers
+"sparse-list.rkt" ; operating on MEM
+"alu.rkt") ; ALU operations
 
 ; Initialize registers
 (define/contract
@@ -34,4 +34,12 @@
     [else (initialize-memory (cdr payload)
 			     (sparse-list-set memory offset (car payload))
 			     (+ 1 offset))]))
+
+(define/contract
+  (load-bytes-from-stdin)
+  (-> (listof byte?))
+  (define next (read-byte))
+  (cond
+    [(eof-object? next) empty]
+    [else (cons next (load-bytes-from-stdin))]))
 

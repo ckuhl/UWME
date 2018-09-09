@@ -1,13 +1,15 @@
 #lang racket
 
+; CPU: fetch / decode / execute the bytecode
+
 (provide fetch decode execute)
 
-(require "output.rkt") ; printing
-(require "constants.rkt")
-(require "alu.rkt")
-(require "ops.rkt")
-(require "sparse-list.rkt")
-(require "byte-tools.rkt")
+(require "output.rkt" ; printing
+	 "constants.rkt" ; magic numbers
+	 "alu.rkt" ; ALU functions
+	 "ops.rkt" ; Operations
+	 "sparse-list.rkt" ; accessing MEM
+	 "byte-tools.rkt") ; operating on bytes
 
 ; fetch
 (define/contract
@@ -122,14 +124,14 @@
        mem)]
     [(equal? op lw-opcode)
      (apply fetch
-       (lw (decoded-rs current)
-	   (decoded-rt current)
-	   (decoded-immediate current)
-	   registers
-	   mem))]
+	    (lw (decoded-rs current)
+		(decoded-rt current)
+		(decoded-immediate current)
+		registers
+		mem))]
     [(equal? op sw-opcode)
      (apply fetch
-	      (sw (decoded-rs current)
+	    (sw (decoded-rs current)
 		(decoded-rt current)
 		(decoded-immediate current)
 		registers

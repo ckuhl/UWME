@@ -2,9 +2,10 @@
 
 (provide lw sw beq bne)
 
-(require "alu.rkt") ; signed->unsigned
-(require "constants.rkt")
-(require "sparse-list.rkt")
+(require "output.rkt" ; mmio-write
+	 "alu.rkt" ; signed->unsigned
+	 "constants.rkt" ; magic numbers
+	 "sparse-list.rkt") ; operating on MEM
 
 ;; lw :: $t = MEM [$s + i]
 (define/contract
@@ -35,7 +36,7 @@
     (raise-user-error 'CPU "Out of bounds memory access at address 0x~x" addr) #t)
   (cond
     [(equal? addr mmio-write-address)
-     (write-byte (bitwise-and (hash-ref registers rt) #x000000ff) (current-output-port))
+     (mmio-write (hash-ref registers rt))
      (list registers mem)]
     [else (list registers (sparse-list-set mem addr rt))]))
 

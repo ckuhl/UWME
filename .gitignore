@@ -1,6 +1,21 @@
-# Compilation
+# MacOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Racket
+## Compilation
 compiled/
 
-# excutable
+## Temporary files
+*~
+
+## excutables
+### Linux
 mips-vm
+### Windows
+*.exe
+### MacOS
+*.App
 
