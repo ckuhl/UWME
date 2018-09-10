@@ -4,18 +4,18 @@
 
 (require racket/format ; output
 	 "constants.rkt" ; magic numbers
+	 "predicates.rkt" ; contract simplification
 	 "sparse-list.rkt") ; for operating on MEM
 
-(define (valid-register? r) (<= #b00000 r #b11111))
-(define one-reg-contract (valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
-(define two-reg-contract (valid-register? valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
-(define three-reg-contract (valid-register? valid-register? valid-register? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?)))
+(define one-reg-contract ((unsigned-number-size-n? 5) immutable-hash? . -> . immutable-hash?))
+(define two-reg-contract ((unsigned-number-size-n? 5) (unsigned-number-size-n? 5) immutable-hash? . -> . immutable-hash?))
+(define three-reg-contract ((unsigned-number-size-n? 5) (unsigned-number-size-n? 5) (unsigned-number-size-n? 5) immutable-hash? . -> . immutable-hash?))
 
 ;; Concert a decimal number representing an unsigned binary value to the
 ;equivalent value if the binary was signed
 (define/contract
   (unsigned->signed number size)
-  (->i ([x (y) (and/c exact-nonnegative-integer? (between/c 0 (expt 2 y)))]
+  (->i ([x (y) (unsigned-number-size-n? y)]
 	[y exact-positive-integer?])
        [result integer?])
   (cond
@@ -25,7 +25,7 @@
 
 (define/contract
   (signed->unsigned number size)
-  (->i ([x (y) (and/c exact-integer? (between/c (- (expt 2 (sub1 y))) (sub1 (expt 2 (sub1 y)))))]
+  (->i ([x (y) (signed-number-size-n? y)]
 	[y exact-positive-integer?])
        [result integer?])
   (cond
@@ -117,7 +117,7 @@
 ;; lis :: d = MEM[pc]; pc += 4
 (define/contract
   (lis rd registers mem)
-  (valid-register? (and/c hash? hash-equal? immutable?) sparse-list? . -> . (and/c hash? hash-equal? immutable?))
+  ((unsigned-number-size-n? 5) immutable-hash? sparse-list? . -> . immutable-hash?)
   (define loaded
     (unsigned->signed
       (+

@@ -10,7 +10,7 @@
 ;; lw :: $t = MEM [$s + i]
 (define/contract
   (lw rs rt i registers mem)
-  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? (and/c hash? hash-equal? immutable?) sparse-list? . -> . (list/c (and/c hash? hash-equal? immutable?) sparse-list?))
+  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? immutable-hash? sparse-list? . -> . (list/c immutable-hash? sparse-list?))
   (define addr (+ (hash-ref registers rs) i))
   (if (not (zero? (modulo addr 4))) (raise-user-error 'CPU "Unaligned memory access") #t)
   (if (and
@@ -26,7 +26,7 @@
 ;; sw :: MEM [$s + i] = $t
 (define/contract
   (sw rs rt i registers mem)
-  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? (and/c hash? hash-equal? immutable?) sparse-list? . -> . (list/c (and/c hash? hash-equal? immutable?) sparse-list?))
+  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? immutable-hash? sparse-list? . -> . (list/c immutable-hash? sparse-list?))
   (define addr (+ (signed->unsigned (hash-ref registers rs) 32) i))
   (if (not (zero? (modulo addr 4))) (raise-user-error 'CPU "Unaligned memory access") #t)
   (if (and
@@ -43,7 +43,7 @@
 ;; beq :: if ($s == $t) pc += i * 4
 (define/contract
   (beq rs rt i registers)
-  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?))
+  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? immutable-hash? . -> . immutable-hash?)
   (cond [(equal? rs rt)
 	 (hash-set registers
 		   'PC
@@ -54,7 +54,7 @@
 ;; bne :: if ($s != $t) pc += i * 4
 (define/contract
   (bne rs rt i registers)
-  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? (and/c hash? hash-equal? immutable?) . -> . (and/c hash? hash-equal? immutable?))
+  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? immutable-hash? . -> . immutable-hash?)
   (cond [(not (equal? rs rt))
 	 (hash-set registers
 		   'PC

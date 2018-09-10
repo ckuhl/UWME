@@ -1,4 +1,8 @@
 # Work log
+## 2018-09-10
+## Morning (0.5 hours)
+- created helper predicate functions
+
 ## 2018-09-09
 ### Noon (1 hour)
 - added licence (AGPLv3)

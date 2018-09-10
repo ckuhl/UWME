@@ -9,12 +9,13 @@
 	 "alu.rkt" ; ALU functions
 	 "ops.rkt" ; Operations
 	 "sparse-list.rkt" ; accessing MEM
+	 "predicates.rkt" ; simplify contracts
 	 "byte-tools.rkt") ; operating on bytes
 
 ; fetch
 (define/contract
   (fetch registers mem)
-  ((and/c hash? hash-equal? immutable?) sparse-list? . -> . void?)
+  (immutable-hash? sparse-list? . -> . void?)
   (cond
     [(equal? (hash-ref registers 'PC) return-address)
      (eprint-registers registers)
@@ -42,7 +43,7 @@
 ; decode
 (define/contract
   (decode registers mem)
-  ((and/c hash? hash-equal? immutable?) sparse-list? . -> . void?)
+  (immutable-hash? sparse-list? . -> . void?)
   (execute
     (make-decoded (hash-ref registers 'IR))
     registers
@@ -50,10 +51,11 @@
 
 (define/contract
   (execute current registers mem)
-  (decoded? (and/c hash? hash-equal? immutable?) sparse-list? . -> . void?)
+  (decoded? immutable-hash? sparse-list? . -> . void?)
 
   (define op (decoded-opcode current))
   (define fu (decoded-funct current))
+
   (cond
     [(equal? op r-type-opcode) ; ALU
      (if (not (equal? (decoded-shamt current) 0)) (raise-user-error 'CPU "`shamt` must be #b00000 for R-type operations, got ~b instead" (decoded-shamt current)) #t)

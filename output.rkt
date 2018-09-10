@@ -3,6 +3,7 @@
 (provide eprint-word eprint-registers mmio-write)
 
 (require "constants.rkt" ; magic numbers
+	 "predicates.rkt" ; contract functions
 	 "alu.rkt") ; signed->unsigned
 
 (define/contract
@@ -31,7 +32,7 @@
 
 (define/contract
   (eprint-registers registers)
-  ((and/c hash? hash-equal? immutable?) . -> . void?)
+  (immutable-hash? . -> . void?)
   (eprintf
     "~a"
     (string-join

@@ -6,6 +6,8 @@
 
 ## Features
 - `[ ]` take binary files as input (binaryio?)
+	- this is required to be able to pass input (to `lw` via MMIO) on the commandline
+		- i.e. to be able to use automated testing
 - `[ ]` handle command line arguments
 	- `[ ]` use [cmdline](https://docs.racket-lang.org/reference/Command-Line_Parsing.html)
 - `[ ]` create error handling methods (to e.g. call `(cpu-error ...)`
@@ -20,7 +22,8 @@
 - `[ ]` determine better approach to naming
 - `[ ]` format code according to the [Racket style guide](https://docs.racket-lang.org/style/index.html)
 - `[ ]` clean up `execute` switch statement
-- `[ ]` create helpter predicate functions (is-valid-word?)
+- `[X]` create helper predicate functions (is-valid-word?)
+	- `[ ]` create more helper predicate functions
 - `[ ]` create printing utility functions (format-word, format-register, etc.)
 - `[ ]` clean up project structure (i.e. how [other MIPS interpreters](https://github.com/topics/mips?o=asc&s=stars) are laid out
 - `[X]` modularize code
@@ -38,16 +41,9 @@
 
 ## Project
 - `[ ]` update the [README](./README.md) with more information
-- `[ ]` write and edit blog post(s)
 - `[ ]` interlink the [log](./LOG.md), [README](./README.md), and this `TODO`
 
-## Information
-- `[ ]` ask profs if there's a specification of VM to compare against
-- `[ ]` ask if I can have access to the emulators
-- `[ ]` determine: what happens if you read from mmio-write-addr
-- `[ ]` when lw from mmio, do upper bytes in word get zeroed?
-
-## (Maybe)
+## Maybe
 - `[ ]` add syntax defitions to vim racket plugin
 	- `[ ]` define/contract
 	- `[ ]` ->

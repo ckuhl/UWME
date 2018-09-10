@@ -5,13 +5,14 @@
 (provide initialize-registers initialize-memory load-bytes-from-stdin)
 
 (require "constants.rkt" ; magic numbers
-"sparse-list.rkt" ; operating on MEM
-"alu.rkt") ; ALU operations
+	 "sparse-list.rkt" ; operating on MEM
+	 "predicates.rkt" ; predicates for contracts
+	 "alu.rkt") ; ALU operations
 
 ; Initialize registers
 (define/contract
   (initialize-registers pc)
-  (exact-nonnegative-integer? . -> . (and/c hash? hash-equal? immutable?))
+  (exact-nonnegative-integer? . -> . immutable-hash?)
   (make-immutable-hash (append (for/list ([i (range 0 30)]) (cons i 0))
 			       (list
 				 (cons 30 stack-pointer)
