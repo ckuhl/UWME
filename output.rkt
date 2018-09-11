@@ -1,10 +1,12 @@
 #lang racket
 
-(provide eprint-word eprint-registers mmio-write)
+(provide eprint-word ; print a hex-formatted wrd to stderr
+	 eprint-registers ; print registers to stderr
+	 mmio-write) ; write a single byte out
 
 (require "constants.rkt" ; magic numbers
 	 "predicates.rkt" ; contract functions
-	 "alu.rkt") ; signed->unsigned
+	 "byte-tools.rkt") ; signed->unsigned
 
 (define/contract
   (eprint-word word)
@@ -12,8 +14,8 @@
   (eprintf
     "~a~n"
     (string-join
-      (for/list ([i (range 0 32 8)]
-		 [j (list #x000000ff #x0000ff00 #x00ff0000 #xff000000)])
+      (for/list ([i (reverse (range 0 32 8))]
+		 [j (reverse (list #x000000ff #x0000ff00 #x00ff0000 #xff000000))])
 	(~r
 	  (arithmetic-shift (bitwise-and word j) (- i))
 	  #:sign #f

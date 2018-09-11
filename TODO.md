@@ -1,8 +1,15 @@
 # To do
 ## Correctness
+- `[ ]` look into writing tests (for success cases and error cases)
+	- `[ ]` test that loading into memory works
+	- `[ ]` test that each operation does what it is supposed to
+		- `[ ]` test that e.g. `mult` fails if unused field is non-zero
+	- `[ ]` test that `fetch` does what it is supposed to
 - `[X]` handle lw special case for MMIO
 - `[X]` handle sw special case for MMIO
 - `[X]` handle unsigned binary math vs. signed
+- `[X]` add contracts to functions in `ops.rkt`
+- `[X]` add contracts to functions `alu.rkt`
 
 ## Features
 - `[ ]` take binary files as input (binaryio?)
@@ -11,7 +18,7 @@
 - `[ ]` handle command line arguments
 	- `[ ]` use [cmdline](https://docs.racket-lang.org/reference/Command-Line_Parsing.html)
 - `[ ]` create error handling methods (to e.g. call `(cpu-error ...)`
-	- `[ ]` define return codes (for e.g. testing)
+	- `[ ]` define unix return codes (for e.g. testing)
 - `[X]` on termination print registers to stderr
 - `[X]` take binary from stdin
 	` `[X]` Use [read-byte](https://docs.racket-lang.org/reference/Byte_and_String_Input.html#%28def._%28%28quote._~23~25kernel%29._read-byte%29%29)
@@ -19,23 +26,20 @@
 ## Code quality
 - `[ ]` document code (see the [Racket style guide](https://docs.racket-lang.org/style/index.html))
 	- `[ ]` See [documenting in source](https://docs.racket-lang.org/scribble/srcdoc.html)
-- `[ ]` determine better approach to naming
 - `[ ]` format code according to the [Racket style guide](https://docs.racket-lang.org/style/index.html)
-- `[ ]` clean up `execute` switch statement
-- `[X]` create helper predicate functions (is-valid-word?)
-	- `[ ]` create more helper predicate functions
 - `[ ]` create printing utility functions (format-word, format-register, etc.)
 - `[ ]` clean up project structure (i.e. how [other MIPS interpreters](https://github.com/topics/mips?o=asc&s=stars) are laid out
+- `[ ]` rename opcode format predicate functions
+- `[ ]` make ops (e.g. `add`, etc.) consistent in code style
+	- (e.g. `(define s...` vs `(define rs...)`)
 - `[X]` modularize code
-
-## Testing
-- `[ ]` look into writing tests (for success cases and error cases)
-- `[X]` add contracts to functions in `ops.rkt`
-- `[X]` add contracts to functions `alu.rkt`
+- `[X]` clean up `execute` switch statement
+- `[X]` create helper predicate functions (is-valid-word?)
 
 ## Publish
 - `[ ]` determine how to use [raco](https://docs.racket-lang.org/raco/index.html) to build an executable
 - `[ ]` speed up code by replacing `#lang racket` with `#lang racket/base`
+	- take timings before and after
 - `[X]` write a Makefile to automate tasks
 	- `[ ]` use upx to compress filesize(?)
 

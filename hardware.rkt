@@ -2,12 +2,13 @@
 
 ; Stores the "hardware" (= registers and MEM)
 
-(provide initialize-registers initialize-memory load-bytes-from-stdin)
+(provide initialize-registers
+	 initialize-memory
+	 load-bytes-from-stdin)
 
 (require "constants.rkt" ; magic numbers
-	 "sparse-list.rkt" ; operating on MEM
-	 "predicates.rkt" ; predicates for contracts
-	 "alu.rkt") ; ALU operations
+	 "sparse-list.rkt" ; for implementing MEM
+	 "predicates.rkt") ; immutable-hash?
 
 ; Initialize registers
 (define/contract

@@ -1,7 +1,15 @@
 # Work log
 ## 2018-09-10
-## Morning (0.5 hours)
-- created helper predicate functions
+### Evening (3 hours)
+- combined all CPU operations into the CPU file
+- simplify the CPU logic to use a hash instead of switching on `cond`
+- fixed error with reverse byte order
+
+### Noon (0.25 hours)
+- added another predicate: `non-zero?`
+
+### Morning (0.5 hours)
+- created helper predicate functions (e.g. `immutable-hash?`)
 
 ## 2018-09-09
 ### Noon (1 hour)
