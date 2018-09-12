@@ -1,5 +1,8 @@
 # To do
 ## Correctness
+- `[ ]` write macro(s)
+	- where are they appropriate?
+	- for registers? memory? words?
 - `[ ]` look into writing tests (for success cases and error cases)
 	- `[ ]` test that loading into memory works
 	- `[ ]` test that each operation does what it is supposed to
@@ -12,7 +15,7 @@
 - `[X]` add contracts to functions `alu.rkt`
 
 ## Features
-- `[ ]` take binary files as input (binaryio?)
+- `[X]` take binary files as input
 	- this is required to be able to pass input (to `lw` via MMIO) on the commandline
 		- i.e. to be able to use automated testing
 - `[ ]` handle command line arguments
@@ -24,11 +27,12 @@
 	` `[X]` Use [read-byte](https://docs.racket-lang.org/reference/Byte_and_String_Input.html#%28def._%28%28quote._~23~25kernel%29._read-byte%29%29)
 
 ## Code quality
+- `[ ]` move everything but the main project into submodules
+- `[ ]` clean up project structure (i.e. how [other MIPS interpreters](https://github.com/topics/mips?o=asc&s=stars) are laid out
 - `[ ]` document code (see the [Racket style guide](https://docs.racket-lang.org/style/index.html))
 	- `[ ]` See [documenting in source](https://docs.racket-lang.org/scribble/srcdoc.html)
 - `[ ]` format code according to the [Racket style guide](https://docs.racket-lang.org/style/index.html)
 - `[ ]` create printing utility functions (format-word, format-register, etc.)
-- `[ ]` clean up project structure (i.e. how [other MIPS interpreters](https://github.com/topics/mips?o=asc&s=stars) are laid out
 - `[ ]` rename opcode format predicate functions
 - `[ ]` make ops (e.g. `add`, etc.) consistent in code style
 	- (e.g. `(define s...` vs `(define rs...)`)
@@ -37,13 +41,15 @@
 - `[X]` create helper predicate functions (is-valid-word?)
 
 ## Publish
-- `[ ]` determine how to use [raco](https://docs.racket-lang.org/raco/index.html) to build an executable
+- `[X]` determine how to use [raco](https://docs.racket-lang.org/raco/index.html) to build an executable
+	- not possible currently
 - `[ ]` speed up code by replacing `#lang racket` with `#lang racket/base`
 	- take timings before and after
 - `[X]` write a Makefile to automate tasks
-	- `[ ]` use upx to compress filesize(?)
+	- `[O]` use upx to compress filesize (not possible)
 
 ## Project
+- `[ ]` move `TODO` and `LOG` into a subdirectory?
 - `[ ]` update the [README](./README.md) with more information
 - `[ ]` interlink the [log](./LOG.md), [README](./README.md), and this `TODO`
 

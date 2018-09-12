@@ -1,4 +1,26 @@
 # Work log
+## 2018-09-14
+### Evening (3 hour)
+- convert entire system to use bytes intstead of integers
+	- the hard-to-find functions `integer->integer-bytes` and vice-versa aid
+
+### Morning (1 hour)
+- wrote byte tools
+- began writing unit tests to ensure functionality of byte tools
+
+## 2018-09-13
+### Evening (1.75 hours)
+- moved code to module, providing `(run)` function to run from program in root
+- added more command line arguments
+- further began implementing changeover to bytes
+- began reading about / learning about macros
+
+## 2018-09-11
+### Evening (? hours)
+- update test files
+- update predicates
+- move around code
+
 ## 2018-09-10
 ### Evening (3 hours)
 - combined all CPU operations into the CPU file

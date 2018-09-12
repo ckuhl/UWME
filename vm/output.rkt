@@ -2,11 +2,13 @@
 
 (provide eprint-word ; print a hex-formatted wrd to stderr
 	 eprint-registers ; print registers to stderr
-	 mmio-write) ; write a single byte out
+	 mmio-write ; write a single byte out
+	 format-funct)
 
 (require "constants.rkt" ; magic numbers
-	 "predicates.rkt" ; contract functions
-	 "byte-tools.rkt") ; signed->unsigned
+	 "registers.rkt" ; registers
+	 "word.rkt") ; signed->unsigned
+
 
 (define/contract
   (eprint-word word)
@@ -34,7 +36,7 @@
 
 (define/contract
   (eprint-registers registers)
-  (immutable-hash? . -> . void?)
+  (registers? . -> . void?)
   (eprintf
     "~a"
     (string-join
@@ -46,7 +48,7 @@
 	"\n"
 	4)
       "  "
-      #:before-first "\n  "  ; What the heck. This will gladly overwrite stderr
+      #:before-first "  "  ; What the heck. This will gladly overwrite stdout
       #:after-last "\n")))
 
 (define/contract
@@ -55,15 +57,22 @@
   (printf "~C" (integer->char byte)))
 
 (define/contract
-  (format-register word)
+  (format-register w)
   (exact-integer? . -> . string?)
   (format "0x~a"
-	  (~r
-	    (if (negative? word)
-	      (signed->unsigned word 32)
-	      word)
-	    #:sign #f
-	    #:base 16
-	    #:min-width 8
-	    #:pad-string "0")))
+	  (~r w
+	      #:sign #f
+	      #:base 16
+	      #:min-width 8
+	      #:pad-string "0")))
+
+(define/contract
+  (format-funct v)
+  (exact-integer? . -> . string?)
+  (format "~a"
+	  (~r v
+	      #:sign #f
+	      #:base 2
+	      #:min-width 6
+	      #:pad-string "0")))
 
