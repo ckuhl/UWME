@@ -1,4 +1,9 @@
 # Work log
+## 2018-09-15
+### Noon (start: 14:15)
+- begin rewrite (finsh 16:30)
+- begin debugging
+
 ## 2018-09-14
 ### Evening (3 hour)
 - convert entire system to use bytes intstead of integers

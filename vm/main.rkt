@@ -10,7 +10,7 @@
 
 (provide run)
 
-
+;; Set up and run the virtual machine
 (define (run)
   (define loader-mode (make-parameter 'none))
   (define pc-initial-index (make-parameter 0))
@@ -46,28 +46,26 @@
   (define registers (initialize-registers 0))
   (define memory (initialize-memory (file->bytes source-file)))
 
-  ; update based on actions taken
+  ; update registers and/or memory based on the flag set taken
   (define reg-mem
     (cond
       [(equal? loader-mode 'twoints) (list (load-twoints registers) memory)]
       [(equal? loader-mode 'array) (load-array registers memory)]
       [else (list registers memory)]))
 
-  ; begin program recursion
-  (apply fetch (values reg-mem)))
+  ; GO!
+  (apply run-cpu (values reg-mem)))
 
+;; Helper to load two integers from stdin into registers $1 and $2
+(define (load-twoints rf)
+  (registerfile-set*
+    rf
+    #b00000 (begin (eprintf "Enter value for register 1: ") (read))
+    #b00010 (begin (eprintf "Enter value for register 2: ") (read))))
 
-(define (load-twoints registers)
-  (hash-set
-    (hash-set registers
-	      #b00001
-	      ((eprintf "Enter value for register 1: ")
-	       (read)))
-    #b00010
-    ((eprintf "Enter value for register 2: ")
-     (read))))
-
-; TODO
+;; Helper to load an array of n integers from stdin into memory, and place
+;; the starting address of the array in register $ TODO
+; TODO implement load-array functionality
 (define (load-array registers mem)
   (list registers mem))
 

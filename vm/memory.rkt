@@ -20,35 +20,46 @@
 	       (raise-user-error 'memory "Problem with keyvalue")]
 	      [else (values k v i)])))
 
-;; Create a new sparse list
+;; Create a memory object
+; k: size
+; v: default value
 (define/contract
   (make-memory k v)
-  (exact-nonnegative-integer? any/c . -> . memory?)
+  (exact-nonnegative-integer? bytes? . -> . memory?)
   (memory k v (make-immutable-hash)))
 
 ;; Get element at index
 (define/contract
-  (memory-ref lst pos)
-  (memory? exact-nonnegative-integer? . -> . any/c)
-  (if (or
-	(> pos (memory-k lst))
-	(< pos 0))
-    (raise-user-error 'memory "index ~a is outside of the bounds of the array" pos)
-    #t)
-  (if (not (zero? (remainder pos 4))) (raise-user-error 'memory "unaligned byte access at ~a" pos)#t)
+  (memory-ref mem key)
+  (memory? exact-nonnegative-integer? . -> . bytes?)
+  ;; additional constraints
+  ;; TODO can these be moved into the contract?
+  (when (> key (memory-k mem))
+    (raise-user-error 'memory "index ~a is outside of the bounds of the array" key))
+  (unless (zero? (remainder key 4))) (raise-user-error 'memory "unaligned byte access at ~a" key)
 
-  (hash-ref (memory-_hash lst)
-	    pos
-	    (lambda () (memory-default lst))))
+  (hash-ref (memory-_hash mem)
+	    key
+	    (lambda () (memory-default mem))))
+
+;; Utility function to get and convert in one step
+(define/contract
+  (memory-integer-ref mem key signed)
+  (memory? exact-nonnegative-integer? boolean? . -> . exact-integer?)
+  (integer-bytes->integer (memory-ref mem key) word-size signed))
 
 ;; Set element at index
 (define/contract
-  (memory-set lst pos v)
-  (memory? exact-nonnegative-integer? any/c . -> . memory?)
-  (memory (memory-k lst)
-	       (memory-default lst)
-	       (hash-set (memory-_hash lst) pos v)))
+  (memory-set mem key v)
+  (memory? exact-nonnegative-integer? bytes? . -> . memory?)
+  (memory (memory-k mem)
+	  (memory-default mem)
+	  (hash-set (memory-_hash mem) key v)))
 
+(define/contract
+(memory-integer-set mem key v)
+(memory? exact-nonnegative-integer? integer? . -> . memory?)
+(memory-set mem key (integer->integer-bytes v word-size #f)))
 
 ;; Initialize memory
 (define/contract
@@ -58,7 +69,8 @@
   ((bytes?) (memory? exact-nonnegative-integer?) . ->* . memory?)
   (cond
     [(zero? (bytes-length payload)) memory]
-    [else (initialize-memory (subbytes payload 4)
-			     (memory-set memory offset (subbytes payload 0 4))
-			     (+ 4 offset))]))
+    [else (initialize-memory
+	    (subbytes payload word-size)
+	    (memory-set memory offset (subbytes payload 0 word-size))
+	    (+ word-size offset))]))
 

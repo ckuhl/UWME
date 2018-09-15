@@ -1,50 +1,55 @@
 #lang racket
 
-; CPU: Modifies reg and memory
+; CPU: Modifies rf and memory
 
-(provide fetch
-	 decode
-	 execute)
+(provide run-cpu)
 
-(require "output.rkt" ; writing out memory contents
-	 "constants.rkt" ; magic numbers
+(require "constants.rkt" ; magic numbers
 	 "memory.rkt" ; memory
-	 "registers.rkt" ; registers
+	 "registerfile.rkt" ; registers
 	 "word.rkt") ; word
+
+;; wrapper function to run everything
+(define/contract
+  (run-cpu rf mem)
+  (registerfile? memory? . -> . void?)
+  (fetch rf mem))
 
 
 ;; fetch :: get next instruction from memory and update $PC
 (define/contract
-  (fetch reg mem)
-  (registers? memory? . -> . void?)
+  (fetch rf mem)
+  (registerfile? memory? . -> . void?)
+  (define pc-contents (registerfile-ref rf 'PC #f))
   (cond
-    [(equal? (integer-bytes->integer (hash-ref reg 'PC) #f) return-address)
-     (eprint-registers reg)
+    [(equal? pc-contents return-address)
+     (printf "~a~n" rf)
      (exit 0)]
     [else
-      (define next-ir (word-raw (bytes->word (hash-ref reg 'PC))))
 
-      ; TODO add a switch to output line-by-line execution
-      ; (eprint-word next-ir) ; output each word to stderr
+      ; TODO add a switch to output line-by-line execution?
 
       (decode
-	(hash-set
-	  (hash-set reg 'IR (memory-ref mem next-ir))
-	  'PC
-	  (integer->integer-bytes (+ (integer-bytes->integer (hash-ref reg 'PC) #f word-size)) 4 #f))
+	(registerfile-set*
+	  rf
+	  'IR (memory-ref mem pc-contents)
+	  'PC (memory-ref mem (+ pc-contents 4)))
 	mem)]))
 
 ;; decode :: interpret the current instruction
 (define/contract
-  (decode reg mem)
-  (registers? memory? . -> . void?)
-  (printf "~a~n" (bytes->word (hash-ref reg 'IR)))
-  (execute (bytes->word (hash-ref reg 'IR)) reg mem))
+  (decode rf mem)
+  (registerfile? memory? . -> . void?)
+  ; just printing out what we have right now
+  (printf "~a~n" (bytes->word (registerfile-ref rf 'IR)))
 
-;; execute :: update reg and/or memory based on instruction
+  (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
+
+
+;; execute :: update rf and/or memory based on instruction
 (define/contract
-  (execute w reg mem)
-  (word? registers? memory? . -> . void?)
+  (execute w rf mem)
+  (word? registerfile? memory? . -> . void?)
   (apply
     fetch
     (apply
@@ -53,7 +58,14 @@
 			     'CPU
 			     "given opcode ~b does not exist"
 			     (word-op w))))
-      (list w reg mem))))
+      (list w rf mem))))
+
+
+;; helpers
+(define/contract (compute-offset-addr word)
+(word? . -> . exact-integer?)
+  (+ (registerfile-integer-ref rf (word-rs w) #f))
+     (word-i w))
 
 
 ;; ===========================================================================
@@ -61,8 +73,8 @@
 
 ;; R-type
 (define/contract
-  (r-type w reg mem)
-  (word? registers? memory? . -> . (list/c registers? memory?))
+  (r-type w rf mem)
+  (word? registerfile? memory? . -> . (list/c registerfile? memory?))
   (apply (hash-ref
 	   functs
 	   (word-fn w)
@@ -70,67 +82,64 @@
 			'ALU
 			"given funct ~a does not exist"
 			(format-funct (word-fn w)))))
-	 (list w reg mem)))
+	 (list w rf mem)))
 
 ;; lw :: $t = MEM [$s + i]
 (define/contract
-  (lw w reg mem)
-  (word? registers? memory? . -> . (list/c registers? memory?))
-  (define addr (+ (integer-bytes->integer (hash-ref reg (word-rs w)) #t) (word-i w)))
-
+  (lw w rf mem)
+  (word? registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define addr (compute-offset-addr w))
   (cond
+    ; reading from MMIO
     [(equal? addr mmio-read-address)
-     (list (hash-set reg (word-rt w) (bitwise-and (read-byte (current-input-port)) lsb-mask) mem))]
-    [(and (not (negative? addr)) (< addr MEMORY-SIZE))
-     (list (hash-set reg (word-rt w) (memory-ref mem addr)) mem)]
-    [else
-    (raise-user-error 'CPU "Out of bounds memory access at address ~X" addr)]))
+     (list (registerfile-set rf (word-rt w) (bitwise-and (read-byte) lsb-mask)) mem)]
+    ; reading from memory
+     [else
+       (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)]))
 
 ;; sw :: MEM [$s + i] = $t
 (define/contract
-  (sw w reg mem)
-  (word? registers? memory? . -> . (list/c registers? memory?))
-  (define addr (+ (integer-bytes->integer (hash-ref reg (word-rs w)) #t) (word-i w)))
-  (if (not (zero? (modulo addr word-size))) (raise-user-error 'CPU "Unaligned memory access") #t)
-  (if (and (or (negative? addr) (> addr MEMORY-SIZE))
-	   (not (equal? addr mmio-write-address)))
-    (raise-user-error 'CPU "Out of bounds memory access at address 0x~x" addr) #t)
+  (sw w rf mem)
+  (word? registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define addr (compute-offset-addr w))
   (cond
+    ; writing to MMIO
     [(equal? addr mmio-write-address)
-     (mmio-write (hash-ref reg (word-rt w)))
-     (list reg mem)]
-    [else (list reg (memory-set mem addr (word-rt w)))]))
+     (begin (write-byte (registerfile-ref rf (word-rt w))) (list rf mem))]
+    ; write to memory from register
+    [else
+      (list rf (memory-set mem addr (registerfile-ref rf (word-rt w))))]))
 
 ;; beq :: if ($s == $t) pc += i * 4
 (define/contract
-  (beq instr reg mem)
-  (word? registers? memory? . -> . (list/c registers? memory?))
+  (beq w rf mem)
+  (word? registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (cond [(equal? (word-rs instr) (word-rt instr))
-	   (hash-set reg
-		     'PC
-		     (+ (hash-ref reg 'PC)
-			(* (word-i instr) word-size)))]
-	  [else reg])
+    (cond
+      [(equal? (word-rs w) (word-rt w))
+       (registerfile-integer-set
+	 rf
+	 'PC (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size)))]
+      [else reg])
     mem))
 
 ;; bne :: if ($s != $t) pc += i * 4
 (define/contract
-  (bne instr reg mem)
-  (word? registers? memory? . -> . (list/c registers? memory?))
+  (bne w rf mem)
+  (word? registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (cond [(not (equal? (word-rs instr) (word-rt instr)))
-	   (hash-set reg
-		     'PC
-		     (integer->integer-bytes
-		       (+ (integer-bytes->integer (hash-ref reg 'PC) #f)
-			  (* (word-i instr) word-size))
-		     4 #f))]
-	  [else reg])
+    (cond
+      [(not (equal? (word-rs instr) (word-rt instr)))
+       (registerfile-integer-set
+	 rf
+	 'PC
+	 (+ (registerfile-integer-ref rf 'PC #f)
+	    (* (word-i instr) word-size)))]
+      [else reg])
     mem))
 
 
-;; opcode table
+  ;; opcode table
 (define opcodes
   (make-immutable-hash
     (list (cons r-type-opcode r-type)
@@ -154,173 +163,166 @@
 
 ; add :: $d = $s + $t
 (define/contract
-  (add instr reg mem)
-  (three-operand registers? memory? . -> . (list/c registers? memory?))
+  (add w rf mem)
+  (three-operand registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (hash-set reg
-	      (word-rd instr)
-	      (+ (hash-ref reg (word-rs instr))
-		 (hash-ref reg (word-rt instr))))
+    (registerfile-integer-set
+      reg
+      (word-rd w)
+      (+ (registerfile-integer-ref rf (word-rs w))
+	 (registerfile-integer-ref rf (word-rt w))))
     mem))
 
 ; sub :: $d = $s - $t
 (define/contract
-  (sub instr reg mem)
-  (three-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (hash-ref reg (word-rs instr)))
-  (define t (hash-ref reg (word-rt instr)))
+  (sub w rf mem)
+  (three-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w)))
+  (define t (registerfile-integer-ref rf (word-rt w)))
   (list
-    (hash-set reg (word-rd instr) (- s t))
+    (registerfile-integer-set rf (word-rd w) (- s t))
     mem))
 
 ;; mult :: $HI:$LO = $rs * $rd
 (define/contract
-  (mult instr reg mem)
-  (two-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (hash-ref reg (word-rs instr)))
-  (define t (hash-ref reg (word-rt instr)))
+  (mult w rf mem)
+  (two-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w) #t))
+  (define t (registerfile-integer-ref rf (word-rt w) #t))
   (list
-    (hash-set
-      (hash-set
-	reg
-	'HI
-	(arithmetic-shift (bitwise-and (* s t) hi-result-mask) -32))
-      'LO
-      (bitwise-and (* s t) lo-result-mask))
+  (registerfile-integer-set*
+    rf
+    'HI (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-width 8)))
+     #t ; todo handle weird position for `signed` parameter
+    'LO (bitwise-and (* s t) lo-result-mask))
     mem))
 
 ;; multu :: $HI:$LO = $rs * $rt
 (define/contract
-  (multu instr reg mem)
-  (two-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (integer-bytes->integer (hash-ref reg (word-rs instr)) #t))
-  (define t (integer-bytes->integer (hash-ref reg (word-rt instr)) #t))
+  (multu w rf mem)
+  (two-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w) #f))
+  (define t (registerfile-integer-ref rf (word-rt w) #f))
   (list
-    (hash-set
-      (hash-set
-	reg
-	'HI
-	(arithmetic-shift (bitwise-and (* s t) hi-result-mask) -32))
-      'LO
-      (bitwise-and (* s t) lo-result-mask))
+    (registerfile-integer-set*
+      rf
+      'HI (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-width 8)))
+      #f ; todo handle weird position for `signed` parameter
+      'LO (bitwise-and (* s t) lo-result-mask))
     mem))
 
 ;; div :: $LO = $s / $t, $HI = $s % $t
 (define/contract
-  (div instr reg mem)
-  (two-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (hash-ref reg (word-rs instr)))
-  (define t (hash-ref reg (word-rt instr)))
-  (if (zero? t)
-    (raise-user-error "CPU error: Division by zero") #t)
+  (div w rf mem)
+  (two-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w)) #t)
+  (define t (registerfile-integer-ref rf (word-rt w)) #t)
+  (when (zero? t) (raise-user-error "CPU error: Division by zero"))
   (list
-    (hash-set
-      (hash-set 'HI (remainder s t))
-      'LO
-      (quotient s t))
+    (register-integer-set
+      rf
+      'HI (remainder s t)
+      #t
+      'LO (quotient s t))
     mem))
 
 ;; divu :: $LO = $s / $t, $HI = $s % $t
 (define/contract
-  (divu instr reg mem)
-  (two-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (integer-bytes->integer (hash-ref reg (word-rs instr)) #t))
-  (define t (integer-bytes->integer (hash-ref reg (word-rt instr)) #t))
-  (if (zero? t) (raise-user-error "CPU error: Division by zero") #t)
+  (divu w rf mem)
+  (two-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w)) #f)
+  (define t (registerfile-integer-ref rf (word-rt w)) #f)
+  (when (zero? t) (raise-user-error "CPU error: Division by zero"))
   (list
-    (hash-set
-      (hash-set reg 'HI (remainder s t))
-      'LO
-      (quotient s t))
+    (registerfile-integer-set
+      rf
+      'HI (remainder s t)
+      #f
+      'LO (quotient s t))
     mem))
 
 ;; mfhi :: $d = $HI
 (define/contract
-  (mfhi instr reg mem)
-  (one-operand-rd registers? memory? . -> . (list/c registers? memory?))
-  (list (hash-set reg (word-rd instr) (hash-ref 'HI)) mem))
+  (mfhi w rf mem)
+  (one-operand-rd registerfile? memory? . -> . (list/c registerfile? memory?))
+  (list (registerfile-set rf (word-rd instr) (registerfile-ref rf 'HI)) mem))
 
 ;; mflo :: $d = $LO
 (define/contract
-  (mflo instr reg mem)
-  (one-operand-rd registers? memory? . -> . (list/c registers? memory?))
-  (list (hash-set reg (word-rd instr) (hash-ref 'LO)) mem))
+  (mflo w rf mem)
+  (one-operand-rd registerfile? memory? . -> . (list/c registerfile? memory?))
+  (list (registerfile-set rf (word-rd instr) (registerfile-ref rf 'LO)) mem))
 
 ;; lis :: d = MEM[pc]; pc += 4
 (define/contract
-  (lis instr reg mem)
-  (one-operand-rd registers? memory? . -> . (list/c registers? memory?))
-  (define pc (hash-ref reg 'PC))
-  (define loaded
-    (integer-bytes->integer (memory-ref (hash-ref reg 'PC)) #t))
+  (lis w rf mem)
+  (one-operand-rd registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (hash-set
-      (hash-set reg (word-rd instr) loaded)
-      'PC
-      (+ word-size (hash-ref reg 'PC)))
+    (registerfile-set
+      rf
+      (word-rd w) (registerfile-ref rf 'PC)
+      #f
+      'PC (integer->integer-bytes (+ word-size
+				     (registerfile-integer-ref rf 'PC #f))
+				  word-size
+				  #f))
     mem))
 
 ;; slt :: $d = 1 if $s < $t; 0 otherwise
 (define/contract
-  (slt instr reg mem)
-  (three-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (hash-ref reg (word-rs instr)))
-  (define t (hash-ref reg (word-rt instr)))
+  (slt w rf mem)
+  (three-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w) #t))
+  (define t (registerfile-integer-ref rf (word-rt w) #t))
   (list
-    (hash-set reg
-	      (word-rd instr)
-	      (if (< s t) 1 0))
+    (registerfile-integer-set (word-rd instr) (if (< s t) 1 0) #f)
     mem))
 
 ;; sltu :: $d = 1 if $s < $t; 0 otherwise
 (define/contract
-  (sltu instr reg mem)
-  (three-operand registers? memory? . -> . (list/c registers? memory?))
-  (define s (integer-bytes->integer (hash-ref reg (word-rs instr)) #t))
-  (define t (integer-bytes->integer (hash-ref reg (word-rt instr)) #t))
+  (sltu w rf mem)
+  (three-operand registerfile? memory? . -> . (list/c registerfile? memory?))
+  (define s (registerfile-integer-ref rf (word-rs w) #f))
+  (define t (registerfile-integer-ref rf (word-rt w) #f))
   (list
-    (hash-set reg
-	      (word-rd instr)
-	      (if (< s t) 1 0))
+    (registerfile-integer-set rf (word-rd instr) (if (< s t) 1 0) #f)
     mem))
 
 ;; jr :: pc = $s
 (define/contract
-  (jr instr reg mem)
-  (one-operand-rs registers? memory? . -> . (list/c registers? memory?))
+  (jr w rf mem)
+  (one-operand-rs registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (hash-set reg
-	      'PC
-	      (hash-ref reg (word-rs instr)))
+    (registerfile-set rf 'PC (registerfile-integer-ref rf (word-rs instr) #f))
     mem))
 
 ;; jalr :: temp = $s; $31 = pc; $PC = temp
 (define/contract
-  (jalr instr reg mem)
-  (one-operand-rs registers? memory? . -> . (list/c registers? memory?))
+  (jalr w rf mem)
+  (one-operand-rs registerfile? memory? . -> . (list/c registerfile? memory?))
   (define rs (word-rs instr))
   (list
-    (hash-set
-      (hash-set reg rs (hash-ref reg 'PC))
-      'PC
-      (hash-ref reg rs))
+    (registerfile-set*
+      rf
+      rs (registerfile-ref rf 'PC)
+      'PC (registerfile-ref rf rs))
     mem))
 
 
 ;; funct table
 (define functs
   (make-immutable-hash
-    (list (cons add-funct add)
-	  (cons sub-funct sub)
-	  (cons mult-funct mult)
+    (list (cons add-funct  add)
+	  (cons sub-funct   sub)
+	  (cons mult-funct  mult)
 	  (cons multu-funct multu)
-	  (cons div-funct div)
-	  (cons divu-funct divu)
-	  (cons mfhi-funct mfhi)
-	  (cons mflo-funct mflo)
-	  (cons lis-funct lis)
-	  (cons slt-funct slt)
-	  (cons sltu-funct sltu)
-	  (cons jr-funct jr)
-	  (cons jalr-funct jalr))))
+	  (cons div-funct   div)
+	  (cons divu-funct  divu)
+	  (cons mfhi-funct  mfhi)
+	  (cons mflo-funct  mflo)
+	  (cons lis-funct   lis)
+	  (cons slt-funct   slt)
+	  (cons sltu-funct  sltu)
+	  (cons jr-funct    jr)
+	  (cons jalr-funct  jalr))))
 
