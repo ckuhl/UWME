@@ -5,7 +5,7 @@
 (require racket/cmdline) ; command line arguments
 
 (require "cpu.rkt" ; do processing
-	 "registers.rkt" ; working space
+	 "registerfile.rkt" ; working space
 	 "memory.rkt") ; store things
 
 (provide run)
@@ -43,7 +43,7 @@
       filename))
 
   ; initialize registers and memory
-  (define registers (initialize-registers 0))
+  (define registers (initialize-registerfile))
   (define memory (initialize-memory (file->bytes source-file)))
 
   ; update registers and/or memory based on the flag set taken
@@ -64,8 +64,8 @@
     #b00010 (begin (eprintf "Enter value for register 2: ") (read))))
 
 ;; Helper to load an array of n integers from stdin into memory, and place
-;; the starting address of the array in register $ TODO
+;; the starting address of the array in register $TODO
 ; TODO implement load-array functionality
-(define (load-array registers mem)
-  (list registers mem))
+(define (load-array rf mem)
+  (list rf mem))
 

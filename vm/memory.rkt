@@ -36,7 +36,7 @@
   ;; TODO can these be moved into the contract?
   (when (> key (memory-k mem))
     (raise-user-error 'memory "index ~a is outside of the bounds of the array" key))
-  (unless (zero? (remainder key 4))) (raise-user-error 'memory "unaligned byte access at ~a" key)
+  (unless (zero? (remainder key 4)) (raise-user-error 'memory "unaligned byte access at ~a" key))
 
   (hash-ref (memory-_hash mem)
 	    key
@@ -62,10 +62,11 @@
 (memory-set mem key (integer->integer-bytes v word-size #f)))
 
 ;; Initialize memory
+; load four byte chunks (i.e. words) into each point
 (define/contract
   (initialize-memory payload
-		     [memory (make-memory MEMORY-SIZE MEMORY-LOAD-OFFSET)]
-		     [offset 0])
+		     [memory (make-memory MEMORY-SIZE (bytes 0 0 0 0))]
+		     [offset MEMORY-LOAD-OFFSET])
   ((bytes?) (memory? exact-nonnegative-integer?) . ->* . memory?)
   (cond
     [(zero? (bytes-length payload)) memory]
