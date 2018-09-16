@@ -15,34 +15,38 @@
   (registerfile? memory? . -> . void?)
   (fetch rf mem))
 
-
 ;; fetch :: get next instruction from memory and update $PC
 (define/contract
   (fetch rf mem)
   (registerfile? memory? . -> . void?)
   (define pc-value (registerfile-integer-ref rf 'PC #f))
+
   (cond
     [(equal? pc-value return-address)
-     (printf "~a~n" rf)
-     (exit 0)]
+     (begin
+       (eprintf "Operation completed normally...~n")
+       ; TODO print out register values on exit
+       (exit 0))] ; quit gracefully
     [else
+      (begin
 
-      ; TODO add a switch to output line-by-line execution?
+	; TODO allow this to be switched on in startup?
+	; print out the current $PC and $IR (i.e. instruction) values
+	(printf "~a: ~a~n"
+		(format-word-hex (bytes->word (registerfile-ref rf 'PC)))
+		(format-word-binary (bytes->word (memory-ref mem pc-value))))
 
-      (decode
-	(registerfile-set*
-	  rf
-	  'IR (memory-ref mem pc-value)
-	  'PC (integer->integer-bytes (+ pc-value 4) word-size #f))
-	mem)]))
+	(decode
+	  (registerfile-set-swap
+	    rf
+	    'IR (memory-ref mem pc-value)
+	    'PC (integer->integer-bytes (+ pc-value 4) word-size #f #t))
+	  mem))]))
 
 ;; decode :: interpret the current instruction
 (define/contract
   (decode rf mem)
   (registerfile? memory? . -> . void?)
-  ; just printing out what we have right now
-  (printf "~a~n" (bytes->word (registerfile-ref rf 'IR)))
-
   (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
 
 
@@ -53,19 +57,20 @@
   (apply
     fetch
     (apply
-      (hash-ref opcodes (word-op w)
+      (hash-ref opcodes
+		(word-op w)
 		(lambda () (raise-user-error
 			     'CPU
 			     "given opcode ~b does not exist"
-			     (word-op w))))
+			     (~r (word-op w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
       (list w rf mem))))
 
 
 ;; helpers
 (define/contract (compute-offset-addr rf w)
-(registerfile? word? . -> . exact-integer?)
-  (+ (registerfile-integer-ref rf (word-rs w) #f))
-     (word-i w))
+		 (registerfile? word? . -> . exact-integer?)
+		 (+ (registerfile-integer-ref rf (word-rs w) #f))
+		 (word-i w))
 
 
 ;; ===========================================================================
@@ -81,7 +86,7 @@
 	   (lambda () (raise-user-error
 			'ALU
 			"given funct ~a does not exist"
-			(word-fn w))))
+			(~r (word-fn w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
 	 (list w rf mem)))
 
 ;; lw :: $t = MEM [$s + i]
@@ -94,8 +99,8 @@
     [(equal? addr mmio-read-address)
      (list (registerfile-set rf (word-rt w) (bitwise-and (read-byte) lsb-mask)) mem)]
     ; reading from memory
-     [else
-       (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)]))
+    [else
+      (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)]))
 
 ;; sw :: MEM [$s + i] = $t
 (define/contract
@@ -119,7 +124,9 @@
       [(equal? (word-rs w) (word-rt w))
        (registerfile-integer-set
 	 rf
-	 'PC (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size)))]
+	 'PC
+	 (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size))
+	 #f)]
       [else rf])
     mem))
 
@@ -133,13 +140,13 @@
        (registerfile-integer-set
 	 rf
 	 'PC (+ (registerfile-integer-ref rf 'PC #f)
-	    (* (word-i w) word-size))
+		(* (word-i w) word-size))
 	 #f)]
       [else rf])
     mem))
 
 
-  ;; opcode table
+;; opcode table
 (define opcodes
   (make-immutable-hash
     (list (cons r-type-opcode r-type)
@@ -154,7 +161,8 @@
 ; Functions (i.e. switching based on `funct`)
 
 ;; `word` field order:: opcode rs rt rd shamt funct immediate jump
-; todo
+; TODO define better contracts for operands?
+;  i.e. enforce empty fields (e.g. shamt)
 (define three-operand word?)
 (define two-operand word?)
 (define one-operand-rs word?)
@@ -169,18 +177,22 @@
     (registerfile-integer-set
       rf
       (word-rd w)
-      (+ (registerfile-integer-ref rf (word-rs w))
-	 (registerfile-integer-ref rf (word-rt w))))
+      (+ (registerfile-integer-ref rf (word-rs w) #f)
+	 (registerfile-integer-ref rf (word-rt w) #f))
+      #f)
     mem))
 
 ; sub :: $d = $s - $t
 (define/contract
   (sub w rf mem)
   (three-operand registerfile? memory? . -> . (list/c registerfile? memory?))
-  (define s (registerfile-integer-ref rf (word-rs w)))
-  (define t (registerfile-integer-ref rf (word-rt w)))
   (list
-    (registerfile-integer-set rf (word-rd w) (- s t))
+    (registerfile-integer-set
+      rf
+      (word-rd w)
+      (- (registerfile-integer-ref rf (word-rs w) #f)
+	 (registerfile-integer-ref rf (word-rt w) #f))
+      #f)
     mem))
 
 ;; mult :: $HI:$LO = $rs * $rd
@@ -190,11 +202,14 @@
   (define s (registerfile-integer-ref rf (word-rs w) #t))
   (define t (registerfile-integer-ref rf (word-rt w) #t))
   (list
-  (registerfile-integer-set*
-    rf
-    'HI (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-size 8)))
-     #t ; todo handle weird position for `signed` parameter
-    'LO (bitwise-and (* s t) lo-result-mask))
+    (registerfile-integer-set-swap
+      rf
+      #t
+      'HI
+      (arithmetic-shift (bitwise-and (* s t) hi-result-mask) ; mask off LO
+			(- (* word-size 8))) ; Shift to fit word
+      'LO
+      (bitwise-and (* s t) lo-result-mask))
     mem))
 
 ;; multu :: $HI:$LO = $rs * $rt
@@ -204,10 +219,10 @@
   (define s (registerfile-integer-ref rf (word-rs w) #f))
   (define t (registerfile-integer-ref rf (word-rt w) #f))
   (list
-    (registerfile-integer-set*
+    (registerfile-integer-set-swap
       rf
+      #t
       'HI (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-size 8)))
-      #f ; todo handle weird position for `signed` parameter
       'LO (bitwise-and (* s t) lo-result-mask))
     mem))
 
@@ -219,10 +234,10 @@
   (define t (registerfile-integer-ref rf (word-rt w) #t))
   (when (zero? t) (raise-user-error "CPU error: Division by zero"))
   (list
-    (registerfile-integer-set*
+    (registerfile-integer-set-swap
       rf
+      #f
       'HI (remainder s t)
-      #t
       'LO (quotient s t))
     mem))
 
@@ -234,10 +249,9 @@
   (define t (registerfile-integer-ref rf (word-rt w) #f))
   (when (zero? t) (raise-user-error "CPU error: Division by zero"))
   (list
-    (registerfile-integer-set*
-      rf
+    (registerfile-integer-set
+      rf #f
       'HI (remainder s t)
-      #f
       'LO (quotient s t))
     mem))
 
@@ -257,17 +271,25 @@
 (define/contract
   (lis w rf mem)
   (one-operand-rd registerfile? memory? . -> . (list/c registerfile? memory?))
-  (list
-    (registerfile-set*
+  (define new-rf
+    (registerfile-set-swap
       rf
-      (word-rd w) (memory-ref mem (registerfile-ref rf 'PC))
-      #f
+      (word-rd w) (memory-ref
+		    mem
+		    (integer-bytes->integer (registerfile-ref rf 'PC) #f #t))
       'PC (integer->integer-bytes
 	    (+ word-size
 	       (registerfile-integer-ref rf 'PC #f))
 	    word-size
-	    #f))
-    mem))
+	    #f
+	    #t)))
+
+  ; TODO allow this to be switched on in startup?
+  (printf "~a: ~a~n"
+	  (format-word-hex (bytes->word (registerfile-ref new-rf 'PC)))
+	  (format-word-binary (bytes->word (registerfile-ref new-rf (word-rd w)))))
+
+  (list new-rf mem))
 
 ;; slt :: $d = 1 if $s < $t; 0 otherwise
 (define/contract
@@ -294,7 +316,7 @@
   (jr w rf mem)
   (one-operand-rs registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (registerfile-set rf 'PC (registerfile-integer-ref rf (word-rs w) #f))
+    (registerfile-set rf 'PC (registerfile-ref rf (word-rs w)))
     mem))
 
 ;; jalr :: temp = $s; $31 = pc; $PC = temp
@@ -302,7 +324,7 @@
   (jalr w rf mem)
   (one-operand-rs registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
-    (registerfile-set*
+    (registerfile-set-swap
       rf
       (word-rs w) (registerfile-ref rf 'PC)
       'PC (registerfile-ref rf (word-rs w)))

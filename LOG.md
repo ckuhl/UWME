@@ -1,8 +1,20 @@
 # Work log
+## 2018-09-16
+### Noon (1.5 hours)
+- set all byte conversions to big-endian
+- finish debugging: test program now runs(!)
+- NEXT:
+	- debug input / output (w/r/t `--twoints` not taking two ints as input)
+	- test more inputs
+		- unit tests make sense for ensuring correctness of operands
+	- clean up code in ref/set functions for memory and registerfile
+	- add more switches
+
 ## 2018-09-15
-### Noon (start: 14:15)
+### Noon (~3 hours) (start: 14:15)
 - begin rewrite (finsh 16:30)
-- begin debugging
+- begin compiletime debugging (finish 17:05)
+- NEXT: Runtime debugging (why is it stuck in a loop?)
 
 ## 2018-09-14
 ### Evening (3 hour)

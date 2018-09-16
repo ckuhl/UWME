@@ -58,7 +58,7 @@
 
 ;; Helper to load two integers from stdin into registers $1 and $2
 (define (load-twoints rf)
-  (registerfile-set*
+  (registerfile-set-swap
     rf
     #b00000 (begin (eprintf "Enter value for register 1: ") (read))
     #b00010 (begin (eprintf "Enter value for register 2: ") (read))))

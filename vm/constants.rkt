@@ -65,7 +65,7 @@
 
 ; R-type funct codes =========================================================
 (define   add-funct #b100000)
-(define   sub-funct #b100001)
+(define   sub-funct #b100010)
 (define  mult-funct #b011000)
 (define multu-funct #b011001)
 (define   div-funct #b011010)

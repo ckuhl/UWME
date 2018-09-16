@@ -22,6 +22,9 @@ A copy of the ISA can be found
 - `byte-tools.rkt` provides tools for working with binary numbers in Racket
 - `constants.rkt` provides opcodes, bitmasks, etc.
 
+## Lessons
+- clearly delineate your parts, and ensure that you can't muxck them up
+	- i.e. bytes vs. integer, etc.
 
 ## Read more
 I blogged about the project as I developed it.

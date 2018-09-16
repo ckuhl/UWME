@@ -8,8 +8,8 @@
 	 registerfile-integer-ref
 	 registerfile-set
 	 registerfile-integer-set
-	 registerfile-set*
-	 registerfile-integer-set*)
+	 registerfile-set-swap
+	 registerfile-integer-set-swap)
 
 (require "constants.rkt") ; magic numbers
 
@@ -27,11 +27,11 @@
   (make-immutable-hash
     (append (for/list ([i (range 0 30)]) (cons i default))
 	    (list
-	      (cons 30 (integer->integer-bytes stack-pointer 4 #f))
-	      (cons 31 (integer->integer-bytes return-address 4 #f))
+	      (cons 30 (integer->integer-bytes stack-pointer word-size #f #t))
+ 	      (cons 31 (integer->integer-bytes return-address word-size #f #t))
 	      (cons 'HI default)
 	      (cons 'LO default)
-	      (cons 'PC (integer->integer-bytes pc 4 #f))
+	      (cons 'PC (integer->integer-bytes pc word-size #f #t))
 	      (cons 'IR default)
 	      (cons 'MAR default)
 	      (cons 'MDR default))))))
@@ -46,40 +46,56 @@
 (define/contract
   (registerfile-integer-ref rf k signed)
   (registerfile? (or/c symbol? exact-nonnegative-integer?) boolean? . -> . exact-integer?)
-  (integer-bytes->integer (registerfile-ref rf k) word-size signed))
+  (integer-bytes->integer (registerfile-ref rf k) signed #t))
 
 ;; set a single register
 (define/contract
   (registerfile-set rf k v)
   (registerfile? (or/c symbol? exact-nonnegative-integer?) bytes? . -> . registerfile?)
-  (registerfile (hash-set (registerfile-_impl rf) k v)))
+  (cond
+    [(equal? 0 k) rf] ; writing to $0 doesn't change the value of zero
+    [else (registerfile (hash-set (registerfile-_impl rf) k v))]))
 
 
 ;; helper to set registerfile from an integer
 (define/contract
   (registerfile-integer-set rf k v signed)
   (registerfile? (or/c symbol? exact-nonnegative-integer?) exact-integer? boolean? . -> . registerfile?)
-  (registerfile-set rf k (integer->integer-bytes v word-size signed)))
+  (registerfile-set rf k (integer->integer-bytes v word-size signed #t)))
 
-;; helper to set multiple values frmo an integer
+;; set multiple registers
 (define/contract
-  (registerfile-integer-set* rf k v signed . kvs)
-  (registerfile? (or/c symbol? exact-nonnegative-integer?) exact-integer? boolean? . -> . registerfile?)
-  (registerfile-set* rf
-		     k
-		     (integer->integer-bytes v word-size signed)
-		     (for ([i (range (length kvs))][j kvs])
-		       (cond [(even? i) j]
-			     [else (integer->integer-bytes j word-size signed)]))))
+  (registerfile-set-swap rf k1 v1 k2 v2)
+  (registerfile?
+    (or/c symbol? exact-nonnegative-integer?)
+    bytes?
+    (or/c symbol? exact-nonnegative-integer?)
+    bytes?
+    . -> .
+    registerfile?)
+  ; throw if trying to set the same register to two values (doesn't make sense!)
+  (when (and (equal? k1 k2) (not (equal? v1 v2)))
+    (raise-user-error 'registerfile "Cannot swap a register with itself"))
+  (registerfile-set
+    (registerfile-set rf k1 v1)
+    k2
+    v2))
 
-  ;; set multiple registers
-  (define/contract
-    (registerfile-set* rf k v . kvs)
-    ; TODO is there a more constrained contract for `rest` key-value pairs?
-    (->*
-      (registerfile? (or/c symbol? exact-nonnegative-integer?) bytes?)
-      ()
-      #:rest (listof (or/c bytes? symbol? exact-nonnegative-integer?))
-      registerfile?)
-  (registerfile (hash-set* (registerfile-_impl rf) k v)))
+;; set multiple registers from integer values
+(define/contract
+  (registerfile-integer-set-swap rf signed? k1 v1 k2 v2)
+  (registerfile?
+    boolean?
+    (or/c symbol? exact-nonnegative-integer?)
+    exact-integer?
+    (or/c symbol? exact-nonnegative-integer?)
+    exact-integer?
+    . -> .
+    registerfile?)
+  (registerfile-set-swap
+    rf
+    k1
+    (integer->integer-bytes v1 word-size signed? #t)
+    k2
+    (integer->integer-bytes v2 word-size signed? #t)))
 

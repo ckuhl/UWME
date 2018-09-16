@@ -46,7 +46,7 @@
 (define/contract
   (memory-integer-ref mem key signed)
   (memory? exact-nonnegative-integer? boolean? . -> . exact-integer?)
-  (integer-bytes->integer (memory-ref mem key) word-size signed))
+  (integer-bytes->integer (memory-ref mem key) word-size signed #t))
 
 ;; Set element at index
 (define/contract
@@ -59,7 +59,7 @@
 (define/contract
 (memory-integer-set mem key v)
 (memory? exact-nonnegative-integer? integer? . -> . memory?)
-(memory-set mem key (integer->integer-bytes v word-size #f)))
+(memory-set mem key (integer->integer-bytes v word-size #f #t)))
 
 ;; Initialize memory
 ; load four byte chunks (i.e. words) into each point
