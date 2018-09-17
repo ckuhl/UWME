@@ -1,9 +1,13 @@
 # Work log
 ## 2018-09-16
-### Evening (0.5 hours)
+### Evening (3.0 hours)
 - fix `--twoints` not taking input
 - implement `--array` taking an array as input
 - document the UW MIPS VM implementation
+- implement loop timer & cycle counter
+- format loop timer and cycle counter output
+- add registerfile output
+- completed identical output to UW MIPS VM
 
 ### Noon (1.5 hours)
 - set all byte conversions to big-endian

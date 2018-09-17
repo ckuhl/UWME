@@ -2,7 +2,7 @@
 
 ; MIPS VM: Emulate a MIPS computer!
 
-(require racket/cmdline) ; command line arguments
+; (require racket/cmdline) ; command line arguments
 
 (require "cpu.rkt" ; do processing
 	 "registerfile.rkt" ; working space
@@ -15,6 +15,7 @@
 (define (run)
   (define loader-mode (make-parameter 'none))
   (define pc-initial-index (make-parameter 0))
+  ; show-binary imported from CPU?
 
   ; TODO there is a way to do this functionally, maybe switch over?
   (define source-file
@@ -25,7 +26,16 @@
       [("-p" "--set-pc")
        n
        "Set the initial value of the program counter"
-       (pc-initial-index n)] ; TODO how to set vars?
+       (pc-initial-index n)]
+
+      #:once-each
+      [("-b" "--show-binary")
+       "Show the binary code of each instruction after its execution"
+       (show-binary #t)]
+
+      [("-m" "--more-info")
+       "Show more information on each run"
+       (show-more #t)]
 
       #:once-any
       ["--none"
@@ -55,7 +65,11 @@
       [(equal? (loader-mode) 'array) (load-array registers memory)]
       [else (list registers memory)]))
 
+  ; set starting time to entering the loop
+  (start-time (current-inexact-milliseconds))
+
   ; GO!
+  (eprintf "Running MIPS program.~n")
   (apply run-cpu (values reg-mem)))
 
 ;; Helper to load two integers from stdin into registers $1 and $2
@@ -85,6 +99,7 @@
 	     (cons
 	       (+ array-offset (* array-size word-size))
 	       (integer->integer-bytes (read) word-size #t #t)))))
+
 
   (list
     (memory-set-pairs mem pairs)

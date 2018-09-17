@@ -9,7 +9,9 @@
 	 registerfile-set
 	 registerfile-integer-set
 	 registerfile-set-swap
-	 registerfile-integer-set-swap)
+	 registerfile-integer-set-swap
+
+	 format-registerfile) ; pretty-print the registers
 
 (require "constants.rkt") ; magic numbers
 
@@ -24,18 +26,18 @@
   (initialize-registerfile [pc 0] [default (bytes 0 0 0 0)])
   (() (exact-nonnegative-integer? bytes?) . ->* . registerfile?)
   (registerfile
-  (make-immutable-hash
-    (append (for/list ([i (range 1 30)]) (cons i default))
-	    (list
-	      (cons 0 (bytes 0 0 0 0))
-	      (cons 30 (integer->integer-bytes stack-pointer word-size #f #t))
- 	      (cons 31 (integer->integer-bytes return-address word-size #f #t))
-	      (cons 'HI default)
-	      (cons 'LO default)
-	      (cons 'PC (integer->integer-bytes pc word-size #f #t))
-	      (cons 'IR default)
-	      (cons 'MAR default)
-	      (cons 'MDR default))))))
+    (make-immutable-hash
+      (append (for/list ([i (range 1 30)]) (cons i default))
+	      (list
+		(cons 0 (bytes 0 0 0 0))
+		(cons 30 (integer->integer-bytes stack-pointer word-size #f #t))
+		(cons 31 (integer->integer-bytes return-address word-size #f #t))
+		(cons 'HI default)
+		(cons 'LO default)
+		(cons 'PC (integer->integer-bytes pc word-size #f #t))
+		(cons 'IR default)
+		(cons 'MAR default)
+		(cons 'MDR default))))))
 
 ;; get the value of a single register
 (define/contract
@@ -99,4 +101,22 @@
     (integer->integer-bytes v1 word-size signed? #t)
     k2
     (integer->integer-bytes v2 word-size signed? #t)))
+
+(define/contract
+  (format-registerfile rf)
+  (registerfile? . -> . string?)
+  (string-join
+    (for/list ([i (range 1 32)])
+      (format "$~a = 0x~a   ~a"
+	      (~r i
+		  #:sign #f
+		  #:base 10
+		  #:min-width 2
+		  #:pad-string "0")
+	      (~r (integer-bytes->integer (registerfile-ref rf i) #f #t)
+		  #:sign #f
+		  #:base 16
+		  #:min-width 8
+		  #:pad-string "0")
+	      (if (zero? (modulo i 4)) "\n" ""))) ""))
 

@@ -30,16 +30,16 @@
   (bytes->word bstr)
   (bytes? . -> . word?)
   (define val (integer-bytes->integer bstr #f #t))
+  (define signed-val (integer-bytes->integer bstr #t #t))
   (word
     (integer-bytes->integer bstr #f #t) ; raw
-
     (arithmetic-shift (bitwise-and opcode-mask    val) opcode-offset)    ; opcode
     (arithmetic-shift (bitwise-and rs-mask        val) rs-offset)        ; rs
     (arithmetic-shift (bitwise-and rt-mask        val) rt-offset)        ; rt
     (arithmetic-shift (bitwise-and rd-mask        val) rd-offset)        ; rd
     (arithmetic-shift (bitwise-and shamt-mask     val) shamt-offset)     ; shamt
     (arithmetic-shift (bitwise-and funct-mask     val) funct-offset)     ; funct
-    (arithmetic-shift (bitwise-and immediate-mask val) immediate-offset) ; immediate
+    (integer-bytes->integer (subbytes bstr 2 4) #t #t) ; immediate (signed)
     (arithmetic-shift (bitwise-and address-mask   val) address-offset))) ; addr
 
 (define/contract

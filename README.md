@@ -13,7 +13,15 @@ A [project log](LOG.md) was kept of the work done and amount of time taken.
 A [list of things to do](TODO.md) has also been kept.
 
 
-## Lessons
+## How to use it
+To emulate `java mips.twoints`:
+`racket main.rkt --twoints <binary>`
+
+To emulate `java mips.array`:
+`racket main.rkt --array <binary>`
+
+
+## Lessons learned
 - clearly delineate your parts, and ensure that you can't muck them up
 	- i.e. bytes vs. integer, etc.
 

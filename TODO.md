@@ -7,6 +7,7 @@
 	- `[ ]` test that each operation does what it is supposed to
 		- `[ ]` test that e.g. `mult` fails if unused field is non-zero
 	- `[ ]` test that `fetch` does what it is supposed to
+- `[X]` identical output to UW MIPS VM
 - `[X]` handle lw special case for MMIO
 - `[X]` handle sw special case for MMIO
 - `[X]` handle unsigned binary math vs. signed
@@ -17,8 +18,8 @@
 - `[X]` take binary files as input
 	- this is required to be able to pass input (to `lw` via MMIO) on the commandline
 		- i.e. to be able to use automated testing
-- `[\]` handle command line arguments
-	- `[ ]` use [cmdline](https://docs.racket-lang.org/reference/Command-Line_Parsing.html)
+- `[X]` handle command line arguments
+	- `[X]` use [cmdline](https://docs.racket-lang.org/reference/Command-Line_Parsing.html)
 - `[ ]` create error handling methods (to e.g. call `(cpu-error ...)`
 	- `[ ]` define unix return codes (for e.g. testing)
 - `[X]` on termination print registers to stderr

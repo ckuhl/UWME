@@ -1,13 +1,25 @@
 #lang racket
 
-; CPU: Modifies rf and memory
+; CPU: Modifies register and memory
 
-(provide run-cpu)
+(provide run-cpu
+	 ;; global variables
+	 show-binary
+	 show-more
+	 start-time)
 
 (require "constants.rkt" ; magic numbers
 	 "memory.rkt" ; memory
 	 "registerfile.rkt" ; registers
 	 "word.rkt") ; word
+
+; global configuration
+(define show-binary (make-parameter #f))
+(define show-more (make-parameter #f))
+
+(define start-time (make-parameter (current-inexact-milliseconds)))
+(define cycle-timer (make-parameter (current-inexact-milliseconds)))
+(define cycle-count (make-parameter 0))
 
 ;; wrapper function to run everything
 (define/contract
@@ -19,22 +31,38 @@
 (define/contract
   (fetch rf mem)
   (registerfile? memory? . -> . void?)
-  (define pc-value (registerfile-integer-ref rf 'PC #f))
 
+  ;; TODO remove? global state for loop timer =================================
+  (when (show-more)
+    (printf "Cycle #~a, time: ~ams~n"
+	    (cycle-count)
+	    (/ (round (* 1000
+			 (- (current-inexact-milliseconds)
+			    (cycle-timer))))
+	       1000)))
+  (cycle-timer (current-inexact-milliseconds))
+  (cycle-count (add1 (cycle-count)))
+  ;; ==========================================================================
+
+  (define pc-value (registerfile-integer-ref rf 'PC #f))
   (cond
     [(equal? pc-value return-address)
      (begin
        (eprintf "MIPS program completed normally.~n")
-       ; TODO print out register values on exit
+       (when (show-more)
+	 (eprintf "~a cycles in ~ams, VM freq. ~ahz~n"
+		  (cycle-count)
+		  (/ (round (* 1000 (- (current-inexact-milliseconds) (start-time)))) 1000)
+		  (exact-round (/ (* (cycle-count) 1000) ; 1000 because milliseconds
+				  (- (current-inexact-milliseconds) (start-time))))))
+       (eprintf "~a~n" (format-registerfile rf))
        (exit 0))] ; quit gracefully
     [else
       (begin
-
-	; TODO allow this to be switched on in startup?
-	; print out the current $PC and $IR (i.e. instruction) values
-	(printf "~a: ~a~n"
-		(format-word-hex (bytes->word (registerfile-ref rf 'PC)))
-		(format-word-binary (bytes->word (memory-ref mem pc-value))))
+	(when (show-binary)
+	  (printf "~a: ~a~n"
+		  (format-word-hex (bytes->word (registerfile-ref rf 'PC)))
+		  (format-word-binary (bytes->word (memory-ref mem pc-value)))))
 
 	(decode
 	  (registerfile-set-swap
@@ -122,7 +150,8 @@
   (word? registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
     (cond
-      [(equal? (word-rs w) (word-rt w))
+      [(equal? (registerfile-ref rf (word-rs w))
+	       (registerfile-ref rf (word-rt w)))
        (registerfile-integer-set
 	 rf
 	 'PC
@@ -137,7 +166,8 @@
   (word? registerfile? memory? . -> . (list/c registerfile? memory?))
   (list
     (cond
-      [(not (equal? (word-rs w) (word-rt w)))
+      [(not (equal? (registerfile-ref rf (word-rs w))
+		    (registerfile-ref rf (word-rt w))))
        (registerfile-integer-set
 	 rf
 	 'PC (+ (registerfile-integer-ref rf 'PC #f)
@@ -178,9 +208,9 @@
     (registerfile-integer-set
       rf
       (word-rd w)
-      (+ (registerfile-integer-ref rf (word-rs w) #f)
-	 (registerfile-integer-ref rf (word-rt w) #f))
-      #f)
+      (+ (registerfile-integer-ref rf (word-rs w) #t)
+	 (registerfile-integer-ref rf (word-rt w) #t))
+      #t)
     mem))
 
 ; sub :: $d = $s - $t
@@ -191,9 +221,9 @@
     (registerfile-integer-set
       rf
       (word-rd w)
-      (- (registerfile-integer-ref rf (word-rs w) #f)
-	 (registerfile-integer-ref rf (word-rt w) #f))
-      #f)
+      (- (registerfile-integer-ref rf (word-rs w) #t)
+	 (registerfile-integer-ref rf (word-rt w) #t))
+      #t)
     mem))
 
 ;; mult :: $HI:$LO = $rs * $rd
@@ -285,10 +315,10 @@
 	    #f
 	    #t)))
 
-  ; TODO allow this to be switched on in startup?
-  (printf "~a: ~a~n"
-	  (format-word-hex (bytes->word (registerfile-ref new-rf 'PC)))
-	  (format-word-binary (bytes->word (registerfile-ref new-rf (word-rd w)))))
+  (when (show-binary)
+    (printf "~a: ~a~n"
+	    (format-word-hex (bytes->word (registerfile-ref new-rf 'PC)))
+	    (format-word-binary (bytes->word (registerfile-ref new-rf (word-rd w))))))
 
   (list new-rf mem))
 
