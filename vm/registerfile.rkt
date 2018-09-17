@@ -25,8 +25,9 @@
   (() (exact-nonnegative-integer? bytes?) . ->* . registerfile?)
   (registerfile
   (make-immutable-hash
-    (append (for/list ([i (range 0 30)]) (cons i default))
+    (append (for/list ([i (range 1 30)]) (cons i default))
 	    (list
+	      (cons 0 (bytes 0 0 0 0))
 	      (cons 30 (integer->integer-bytes stack-pointer word-size #f #t))
  	      (cons 31 (integer->integer-bytes return-address word-size #f #t))
 	      (cons 'HI default)

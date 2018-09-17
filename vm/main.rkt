@@ -6,7 +6,8 @@
 
 (require "cpu.rkt" ; do processing
 	 "registerfile.rkt" ; working space
-	 "memory.rkt") ; store things
+	 "memory.rkt" ; store things
+	 "constants.rkt") ; constants like `word-size`
 
 (provide run)
 
@@ -15,6 +16,7 @@
   (define loader-mode (make-parameter 'none))
   (define pc-initial-index (make-parameter 0))
 
+  ; TODO there is a way to do this functionally, maybe switch over?
   (define source-file
     (command-line
       #:program "UWME"
@@ -49,23 +51,45 @@
   ; update registers and/or memory based on the flag set taken
   (define reg-mem
     (cond
-      [(equal? loader-mode 'twoints) (list (load-twoints registers) memory)]
-      [(equal? loader-mode 'array) (load-array registers memory)]
+      [(equal? (loader-mode) 'twoints) (list (load-twoints registers) memory)]
+      [(equal? (loader-mode) 'array) (load-array registers memory)]
       [else (list registers memory)]))
 
   ; GO!
   (apply run-cpu (values reg-mem)))
 
 ;; Helper to load two integers from stdin into registers $1 and $2
-(define (load-twoints rf)
+(define/contract
+  (load-twoints rf)
+  (registerfile? . -> . registerfile?)
   (registerfile-set-swap
     rf
-    #b00000 (begin (eprintf "Enter value for register 1: ") (read))
-    #b00010 (begin (eprintf "Enter value for register 2: ") (read))))
+    #b00001 (begin (eprintf "Enter value for register 1: ")
+		   (integer->integer-bytes (read) word-size #t #t))
+    #b00010 (begin (eprintf "Enter value for register 2: ")
+		   (integer->integer-bytes (read) word-size #t #t))))
 
-;; Helper to load an array of n integers from stdin into memory, and place
-;; the starting address of the array in register $TODO
-; TODO implement load-array functionality
-(define (load-array rf mem)
-  (list rf mem))
+;; Helper to load an array of n integers from stdin into memory
+;; place the starting address of the array in register $1, and the size of
+;; the array in register $2
+(define/contract
+  (load-array rf mem)
+  (registerfile? memory? . -> . (list/c registerfile? memory?))
+
+  (define array-size (begin (eprintf "Enter length of array: ") (read)))
+  (define array-offset (memory-end-of-program mem))
+
+  (define pairs
+    (for/list ([i (range 0 array-size)])
+      (begin (eprintf "Enter array element ~a: " i)
+	     (cons
+	       (+ array-offset (* array-size word-size))
+	       (integer->integer-bytes (read) word-size #t #t)))))
+
+  (list
+    (memory-set-pairs mem pairs)
+    (registerfile-set-swap
+      rf
+      #b00001 (integer->integer-bytes array-offset word-size #t #t)
+      #b00010 (integer->integer-bytes array-size word-size #t #t))))
 

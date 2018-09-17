@@ -24,10 +24,9 @@
 - `[X]` on termination print registers to stderr
 - `[X]` take binary from stdin
 	` `[X]` Use [read-byte](https://docs.racket-lang.org/reference/Byte_and_String_Input.html#%28def._%28%28quote._~23~25kernel%29._read-byte%29%29)
-- `[ ]`
 
 ## Code quality
-- `[X]` move everything but the main project into submodules
+- `[ ]` update memory & registerfile to use `for/fold` to update numerous
 - `[ ]` clean up project structure (i.e. how [other MIPS interpreters](https://github.com/topics/mips?o=asc&s=stars) are laid out
 - `[ ]` document code (see the [Racket style guide](https://docs.racket-lang.org/style/index.html))
 	- `[ ]` See [documenting in source](https://docs.racket-lang.org/scribble/srcdoc.html)
@@ -39,12 +38,12 @@
 - `[X]` modularize code
 - `[X]` clean up `execute` switch statement
 - `[X]` create helper predicate functions (is-valid-word?)
+- `[X]` move everything but the main project into submodules
 
 ## Publish
 - `[X]` determine how to use [raco](https://docs.racket-lang.org/raco/index.html) to build an executable
 	- not possible currently
 - `[X]` write a Makefile to automate tasks
-	- `[O]` use upx to compress filesize (not possible)
 - `[ ]` optimization (timings before and after)
 	- `[ ]` speed up code by replacing `#lang racket` with `#lang racket/base`
 		- take timings before and after

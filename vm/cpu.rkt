@@ -24,7 +24,7 @@
   (cond
     [(equal? pc-value return-address)
      (begin
-       (eprintf "Operation completed normally...~n")
+       (eprintf "MIPS program completed normally.~n")
        ; TODO print out register values on exit
        (exit 0))] ; quit gracefully
     [else
@@ -97,7 +97,7 @@
   (cond
     ; reading from MMIO
     [(equal? addr mmio-read-address)
-     (list (registerfile-set rf (word-rt w) (bitwise-and (read-byte) lsb-mask)) mem)]
+     (list (registerfile-set rf (word-rt w) (bitwise-and (read-byte (current-input-port)) lsb-mask)) mem)]
     ; reading from memory
     [else
       (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)]))
@@ -110,7 +110,8 @@
   (cond
     ; writing to MMIO
     [(equal? addr mmio-write-address)
-     (begin (write-byte (registerfile-ref rf (word-rt w))) (list rf mem))]
+     (begin (write-byte (registerfile-ref rf (word-rt w) (current-output-port)))
+	    (list rf mem))]
     ; write to memory from register
     [else
       (list rf (memory-set mem addr (registerfile-ref rf (word-rt w))))]))

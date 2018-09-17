@@ -1,5 +1,10 @@
 # Work log
 ## 2018-09-16
+### Evening (0.5 hours)
+- fix `--twoints` not taking input
+- implement `--array` taking an array as input
+- document the UW MIPS VM implementation
+
 ### Noon (1.5 hours)
 - set all byte conversions to big-endian
 - finish debugging: test program now runs(!)

@@ -1,11 +1,11 @@
 .DEFAULT_GOAL := help
 
-BUILD=compiled/
-DIST=dist/
+BUILD=compiled
+DIST=dist
 
 MAIN=main
 PROJECT=UWME
-TEST_FILE=test-files/variety.mips
+DEMO=example/variety.mips
 
 
 build: ## Build a standalone program
@@ -19,13 +19,13 @@ build: ## Build a standalone program
 clean: ## Remove temporary files
 	rm -f ${MAIN}.zip
 
-debug: ## Run the program with debugging enabled
-	racket -l errortrace -u ${MAIN}.rkt --twoints ${TEST_FILE}
+debug: ## Run a demonstration program with debugging enabled
+	racket -l errortrace -u ${MAIN}.rkt --twoints ${DEMO}
 
-run: ## Run program
-	racket ${MAIN}.rkt --twoints ${TEST_FILE}
+run: ## Run a demonstration program
+	racket ${MAIN}.rkt --twoints ${DEMO}
 
-help: ## Print this message
+help: ## Print this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
