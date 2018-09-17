@@ -15,15 +15,46 @@ A [list of things to do](TODO.md) has also been kept.
 
 ## How to use it
 To emulate `java mips.twoints`:
+
 `racket main.rkt --twoints <binary>`
 
+
 To emulate `java mips.array`:
+
 `racket main.rkt --array <binary>`
+
+### Demonstration
+```
+$ make run
+echo "0 47" | racket main.rkt --twoints examples/fibonacci.mips
+Enter value for register 1: Enter value for register 2: Running MIPS program.
+MIPS program completed normally.
+$01 = 0x00000000   $02 = 0x00000000   $03 = 0x6d73e55f   $04 = 0x00000000   
+$05 = 0x00000000   $06 = 0x00000000   $07 = 0x00000000   $08 = 0x00000000   
+$09 = 0x00000000   $10 = 0x00000001   $11 = 0x43a53f82   $12 = 0x6d73e55f   
+$13 = 0x00000000   $14 = 0x00000000   $15 = 0x00000000   $16 = 0x00000000   
+$17 = 0x00000000   $18 = 0x00000000   $19 = 0x00000000   $20 = 0x00000000   
+$21 = 0x00000000   $22 = 0x00000000   $23 = 0x00000000   $24 = 0x00000000   
+$25 = 0x00000000   $26 = 0x00000000   $27 = 0x00000000   $28 = 0x00000000   
+$29 = 0x00000000   $30 = 0x01000000   $31 = 0x8123456c   
+```
+
+
+## Components
+- [intialization](vm/initialize.rkt) configures the intial state of three pieces of "hardware":
+	- [the CPU](vm/cpu.rkt) handles all of the CPU business
+		- i.e. the fetch/decode/execute cycle
+	- [the memory](vm/memory.rkt) emulates the memory
+	- [the registerfile](vm/registerfile.rkt) emulates the register file
+- in addition there are a few utilities that make the above easier:
+	- [the word struct](vm/word.rkt) provides all the fields of a word
+	- [constants](vm/constants.rkt) stores all the magic numbers
 
 
 ## Lessons learned
 - clearly delineate your parts, and ensure that you can't muck them up
 	- i.e. bytes vs. integer, etc.
+- plan ahead
 
 
 ## Read more
@@ -60,3 +91,4 @@ I blogged about the project as I developed it.
 #### On termination
 - outputs that program terminated successfully to stderr
 - writes the value of registers $1 - $31 to stderr
+

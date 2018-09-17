@@ -33,6 +33,10 @@
        "Show the binary code of each instruction after its execution"
        (show-binary #t)]
 
+      [("-v" "--verbose")
+       "Show verbose output of operation"
+       (show-verbose #t)]
+
       [("-m" "--more-info")
        "Show more information on each run"
        (show-more #t)]

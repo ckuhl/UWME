@@ -5,7 +5,7 @@ DIST_DIR=dist
 
 MAIN=main
 PROJECT=UWME
-EXAMPLE_DIR=example
+EXAMPLE_DIR=examples
 DEMO=${EXAMPLE_DIR}/fibonacci.mips
 
 

@@ -1,6 +1,6 @@
 #lang racket
 
-(require "vm/main.rkt")
+(require "vm/initialize.rkt")
 
 (run)
 

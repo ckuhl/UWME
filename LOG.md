@@ -1,4 +1,12 @@
 # Work log
+## 2018-09-17
+### Noon (0.25 hours)
+- updated documentation, etc.
+- added `--verbose` switch, seperate from `--show-more`
+
+### Morning (0.75 hours)
+- yak shaving: spent time adding syntax to the `vim-racket` plugin
+
 ## 2018-09-16
 ### Evening (3.0 hours)
 - fix `--twoints` not taking input

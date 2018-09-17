@@ -6,7 +6,8 @@
 	 ;; global variables
 	 show-binary
 	 show-more
-	 start-time)
+	 start-time
+	 show-verbose)
 
 (require "constants.rkt" ; magic numbers
 	 "memory.rkt" ; memory
@@ -16,6 +17,7 @@
 ; global configuration
 (define show-binary (make-parameter #f))
 (define show-more (make-parameter #f))
+(define show-verbose (make-parameter #f))
 
 (define start-time (make-parameter (current-inexact-milliseconds)))
 (define cycle-timer (make-parameter (current-inexact-milliseconds)))
@@ -33,7 +35,7 @@
   (registerfile? memory? . -> . void?)
 
   ;; TODO remove? global state for loop timer =================================
-  (when (show-more)
+  (when (show-verbose)
     (printf "Cycle #~a, time: ~ams~n"
 	    (cycle-count)
 	    (/ (round (* 1000
@@ -72,8 +74,7 @@
 	  mem))]))
 
 ;; decode :: interpret the current instruction
-(define/contract
-  (decode rf mem)
+(define/contract (decode rf mem)
   (registerfile? memory? . -> . void?)
   (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
 
