@@ -56,7 +56,6 @@ $29 = 0x00000000   $30 = 0x01000000   $31 = 0x8123456c
 	- i.e. bytes vs. integer, etc.
 - plan ahead
 
-
 ## Read more
 I blogged about the project as I developed it.
 

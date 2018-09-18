@@ -1,15 +1,18 @@
-#lang racket
+#lang racket/base
 
 ; MIPS VM: Emulate a MIPS computer!
 
-; (require racket/cmdline) ; command line arguments
+(provide run) ; run the entire system!
 
-(require "cpu.rkt" ; do processing
+(require racket/contract ; contracts
+	 racket/cmdline ; command-line arguments
+	 racket/list ; range
+	 racket/file ; file->bytes
+
+	 "cpu.rkt" ; do processing
 	 "registerfile.rkt" ; working space
 	 "memory.rkt" ; store things
 	 "constants.rkt") ; constants like `word-size`
-
-(provide run)
 
 ;; Set up and run the virtual machine
 (define (run)

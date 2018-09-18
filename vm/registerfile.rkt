@@ -1,19 +1,26 @@
-#lang racket
+#lang racket/base
 
 ; implement the registerfile of a MIPS processor
 
-(provide initialize-registerfile
-	 registerfile?
-	 registerfile-ref
-	 registerfile-integer-ref
-	 registerfile-set
-	 registerfile-integer-set
-	 registerfile-set-swap
-	 registerfile-integer-set-swap
+
+(provide initialize-registerfile ; set to default values
+	 registerfile? ; predicate
+	 registerfile-ref ; get register value
+	 registerfile-integer-ref ; get register value as an int
+	 registerfile-set ; set register value
+	 registerfile-integer-set ; set register value from an int
+	 registerfile-set-swap ; set two register values at once
+	 registerfile-integer-set-swap ; set two reg values at once from ints
 
 	 format-registerfile) ; pretty-print the registers
 
-(require "constants.rkt") ; magic numbers
+
+(require racket/contract
+	 racket/list
+	 racket/string
+	 racket/format
+
+	 "constants.rkt") ; magic numbers
 
 
 ;; registerfile container

@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 (require "constants.rkt") ; TODO eventually remove this in favour of command line options?
 
@@ -9,6 +9,8 @@
 	 initialize-memory ; intialize memory with a binary payload
 	 memory-end-of-program ; get the ending point of the binary payload
 	 memory-set-pairs) ; set a series of memory address as a list of key-value pairs
+
+(require racket/contract)
 
 ;; internal sparse list representation
 ;; Num Num Hash -> memory

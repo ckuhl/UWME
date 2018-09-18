@@ -1,15 +1,20 @@
-#lang racket
+#lang racket/base
 
 ; CPU: Modifies register and memory
 
-(provide run-cpu
+(provide run-cpu ; run the processor
+
 	 ;; global variables
 	 show-binary
 	 show-more
 	 start-time
 	 show-verbose)
 
-(require "constants.rkt" ; magic numbers
+(require racket/contract
+	 racket/format ; ~r
+	 racket/math ; exact-round
+
+	 "constants.rkt" ; magic numbers
 	 "memory.rkt" ; memory
 	 "registerfile.rkt" ; registers
 	 "word.rkt") ; word
@@ -52,9 +57,9 @@
      (begin
        (eprintf "MIPS program completed normally.~n")
        (when (show-more)
-	 (eprintf "~a cycles in ~ams, VM freq. ~ahz~n"
+	 (eprintf "~a cycles in ~ams, VM freq. ~akHz~n"
 		  (cycle-count)
-		  (/ (round (* 1000 (- (current-inexact-milliseconds) (start-time)))) 1000)
+		  (/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
 		  (exact-round (/ (* (cycle-count) 1000) ; 1000 because milliseconds
 				  (- (current-inexact-milliseconds) (start-time))))))
        (eprintf "~a~n" (format-registerfile rf))
@@ -75,8 +80,8 @@
 
 ;; decode :: interpret the current instruction
 (define/contract (decode rf mem)
-  (registerfile? memory? . -> . void?)
-  (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
+		 (registerfile? memory? . -> . void?)
+		 (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
 
 
 ;; execute :: update rf and/or memory based on instruction

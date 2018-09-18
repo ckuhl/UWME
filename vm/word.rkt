@@ -1,6 +1,6 @@
-#lang racket
+#lang racket/base
 
-; definition of a word object
+; word: definition of a word object
 
 ; TODO can I bind a contract to the struct at definition instead of at provision?
 (provide (contract-out
@@ -13,14 +13,16 @@
 			 (fn integer?)
 			 (i integer?)
 			 (addr integer?))])
-	 bytes->word
-	 word->bytes
-	 integer->word
-	 word->integer
-	 format-word-binary
-	 format-word-hex)
+	 bytes->word ; convert a string of four bytes to a word
+	 word->bytes ; convert a word to a string of bytes
+	 integer->word ; convert an integer to a word
+	 word->integer ; convert a word to an integer
+	 format-word-binary ; format a word as a binary string
+	 format-word-hex) ; format a word as a hex string
 
-(require "constants.rkt") ; magic numbers
+(require racket/contract ; contracts
+	 racket/format ; format word as binary or hex
+	 "constants.rkt") ; magic numbers
 
 ; define helper
 (struct word (raw op rs rt rd shmt fn i addr)
