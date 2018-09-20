@@ -3,22 +3,16 @@
 ; word: definition of a word object
 
 ; TODO can I bind a contract to the struct at definition instead of at provision?
-(provide (contract-out
-	   [struct word ((raw integer?)
-			 (op integer?)
-			 (rs integer?)
-			 (rt integer?)
-			 (rd integer?)
-			 (shmt integer?)
-			 (fn integer?)
-			 (i integer?)
-			 (addr integer?))])
+(provide (struct-out word)
 	 bytes->word ; convert a string of four bytes to a word
 	 word->bytes ; convert a word to a string of bytes
 	 integer->word ; convert an integer to a word
 	 word->integer ; convert a word to an integer
 	 format-word-binary ; format a word as a binary string
-	 format-word-hex) ; format a word as a hex string
+	 format-word-hex ; format a word as a hex string
+
+	 ; debugging tools
+	 make-r-type-word)
 
 (require racket/contract ; contracts
 	 racket/format ; format word as binary or hex
@@ -81,3 +75,12 @@
 	      #:min-width 8
 	      #:pad-string "0")))
 
+(define/contract
+  (make-r-type-word rs rt rd funct)
+  (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . word?)
+  (integer->word
+    (+
+      (arithmetic-shift rs 21)
+      (arithmetic-shift rt 16)
+      (arithmetic-shift rd 11)
+      funct)))

@@ -8,7 +8,26 @@
 	 show-binary
 	 show-more
 	 start-time
-	 show-verbose)
+	 show-verbose
+
+	 ;; export for testing
+	 (prefix-out cpu: add)
+	(prefix-out cpu: sub)
+	(prefix-out cpu: mult)
+	(prefix-out cpu: multu)
+	(prefix-out cpu: div)
+	(prefix-out cpu: divu)
+	(prefix-out cpu: mfhi)
+	(prefix-out cpu: mflo)
+	(prefix-out cpu: lis)
+	(prefix-out cpu: lw)
+	(prefix-out cpu: sw)
+	(prefix-out cpu: slt)
+	(prefix-out cpu: sltu)
+	(prefix-out cpu: beq)
+	(prefix-out cpu: bne)
+	(prefix-out cpu: jr)
+	(prefix-out cpu: jalr))
 
 (require racket/contract
 	 racket/format ; ~r
@@ -57,13 +76,12 @@
      (begin
        (eprintf "MIPS program completed normally.~n")
        (when (show-more)
-	 (eprintf "~a cycles in ~ams, VM freq. ~akHz~n"
+	 (eprintf "~a cycles in ~as, VM freq. ~akHz~n"
 		  (cycle-count)
 		  (/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
-		  (exact-round (/ (* (cycle-count) 1000) ; 1000 because milliseconds
-				  (- (current-inexact-milliseconds) (start-time))))))
-       (eprintf "~a~n" (format-registerfile rf))
-       (exit 0))] ; quit gracefully
+		  (/ (cycle-count) (- (current-inexact-milliseconds) (start-time)))))) ; Hz / ms == kHz / s
+     (eprintf "~a~n" (format-registerfile rf))
+     (exit 0)] ; quit gracefully
     [else
       (begin
 	(when (show-binary)
