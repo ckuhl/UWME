@@ -1,4 +1,16 @@
 # Work log
+## 2018-09-20
+### Evening (19:30+)
+- stop unit testing
+	- it works _well enough_, I'm getting diminishing returns on the project
+- begin cleaning up the project
+
+## 2018-09-19
+### Evening (1.0 hours)
+- got unit testing working
+- began considering how to structure unit tests
+- began restructuring constants (?)
+
 ## 2018-09-17
 ### Noon (0.25 hours)
 - updated documentation, etc.

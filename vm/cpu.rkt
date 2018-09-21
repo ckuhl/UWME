@@ -8,26 +8,7 @@
 	 show-binary
 	 show-more
 	 start-time
-	 show-verbose
-
-	 ;; export for testing
-	 (prefix-out cpu: add)
-	(prefix-out cpu: sub)
-	(prefix-out cpu: mult)
-	(prefix-out cpu: multu)
-	(prefix-out cpu: div)
-	(prefix-out cpu: divu)
-	(prefix-out cpu: mfhi)
-	(prefix-out cpu: mflo)
-	(prefix-out cpu: lis)
-	(prefix-out cpu: lw)
-	(prefix-out cpu: sw)
-	(prefix-out cpu: slt)
-	(prefix-out cpu: sltu)
-	(prefix-out cpu: beq)
-	(prefix-out cpu: bne)
-	(prefix-out cpu: jr)
-	(prefix-out cpu: jalr))
+	 show-verbose)
 
 (require racket/contract
 	 racket/format ; ~r
@@ -46,6 +27,7 @@
 (define start-time (make-parameter (current-inexact-milliseconds)))
 (define cycle-timer (make-parameter (current-inexact-milliseconds)))
 (define cycle-count (make-parameter 0))
+
 
 ;; wrapper function to run everything
 (define/contract

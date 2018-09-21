@@ -6,7 +6,7 @@ DIST_DIR=dist
 MAIN=main
 PROJECT=UWME
 EXAMPLE_DIR=examples
-DEMO=${EXAMPLE_DIR}/fibonacci.mips
+DEMO=${EXAMPLE_DIR}/collatz.mips
 
 
 build: ## Build a standalone program
@@ -16,7 +16,7 @@ build: ## Build a standalone program
 	mv ${DIST_DIR} ${MAIN}
 	zip -r ${MAIN}.zip ${MAIN}
 
-.PHONY: clean debug run demo help
+.PHONY: clean debug run help
 clean: ## Remove temporary files
 	rm -f ${MAIN}.zip
 
@@ -25,16 +25,8 @@ debug: ## Run a demonstration program with debugging enabled
 	echo "0 47" | racket -l errortrace -u ${MAIN}.rkt --twoints ${DEMO}
 
 demo: ## Run a series of demonstration programs
-	echo "0 47" | racket main.rkt --twoints --more-info examples/fibonacci.mips
 	# 77031 has the longest number of iterations of any number under 100K
-	echo "0 77031" | racket main.rkt --twoints --more-info examples/collatz.mips
-	# 47 is the largest fibonacci number that fits in a 32 bit integer
-	echo "0 47" | racket -l errortrace -u main.rkt --twoints --more-info examples/fibonacci.mips
-	# 77031 has the longest number of iterations of any number under 100K
-	echo "0 77031" | racket -l errortrace -u main.rkt --twoints --more-info examples/collatz.mips
-
-run: ## Run a demonstration program
-	echo "0 47" | racket main.rkt --twoints ${DEMO}
+	echo "0 77031" | racket main.rkt --twoints --more-info ${DEMO}
 
 help: ## Print this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
