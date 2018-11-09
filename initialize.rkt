@@ -3,14 +3,14 @@
 ; MIPS VM: Emulate a MIPS computer!
 
 (require racket/contract ; contracts
-	 racket/cmdline ; command-line arguments
-	 racket/list ; range
-	 racket/file ; file->bytes
+         racket/cmdline ; command-line arguments
+         racket/list ; range
+         racket/file ; file->bytes
 
-	 "cpu.rkt" ; do processing
-	 "registerfile.rkt" ; working space
-	 "memory.rkt" ; store things
-	 "constants.rkt") ; constants like `word-size`
+         "cpu.rkt" ; do processing
+         "registerfile.rkt" ; working space
+         "memory.rkt" ; store things
+         "constants.rkt") ; constants like `word-size`
 
 ;; Set up and run the virtual machine
 (define (run)
@@ -84,9 +84,9 @@
   (registerfile-set-swap
     rf
     #b00001 (begin (eprintf "Enter value for register 1: ")
-		   (integer->integer-bytes (read) word-size #t #t))
+                   (integer->integer-bytes (read) word-size #t #t))
     #b00010 (begin (eprintf "Enter value for register 2: ")
-		   (integer->integer-bytes (read) word-size #t #t))))
+                   (integer->integer-bytes (read) word-size #t #t))))
 
 ;; Helper to load an array of n integers from stdin into memory
 ;; place the starting address of the array in register $1, and the size of
@@ -101,9 +101,9 @@
   (define pairs
     (for/list ([i (range 0 array-size)])
       (begin (eprintf "Enter array element ~a: " i)
-	     (cons
-	       (+ array-offset (* array-size word-size))
-	       (integer->integer-bytes (read) word-size #t #t)))))
+             (cons
+               (+ array-offset (* array-size word-size))
+               (integer->integer-bytes (read) word-size #t #t)))))
 
 
   (list

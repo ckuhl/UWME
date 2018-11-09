@@ -4,23 +4,23 @@
 
 
 (provide initialize-registerfile ; set to default values
-	 registerfile? ; predicate
-	 registerfile-ref ; get register value
-	 registerfile-integer-ref ; get register value as an int
-	 registerfile-set ; set register value
-	 registerfile-integer-set ; set register value from an int
-	 registerfile-set-swap ; set two register values at once
-	 registerfile-integer-set-swap ; set two reg values at once from ints
+         registerfile? ; predicate
+         registerfile-ref ; get register value
+         registerfile-integer-ref ; get register value as an int
+         registerfile-set ; set register value
+         registerfile-integer-set ; set register value from an int
+         registerfile-set-swap ; set two register values at once
+         registerfile-integer-set-swap ; set two reg values at once from ints
 
-	 format-registerfile) ; pretty-print the registers
+         format-registerfile) ; pretty-print the registers
 
 
 (require racket/contract
-	 racket/list
-	 racket/string
-	 racket/format
+         racket/list
+         racket/string
+         racket/format
 
-	 "constants.rkt") ; magic numbers
+         "constants.rkt") ; magic numbers
 
 
 ;; registerfile container
@@ -35,16 +35,16 @@
   (registerfile
     (make-immutable-hash
       (append (for/list ([i (range 1 30)]) (cons i default))
-	      (list
-		(cons 0 (bytes 0 0 0 0))
-		(cons 30 (integer->integer-bytes stack-pointer word-size #f #t))
-		(cons 31 (integer->integer-bytes return-address word-size #f #t))
-		(cons 'HI default)
-		(cons 'LO default)
-		(cons 'PC (integer->integer-bytes pc word-size #f #t))
-		(cons 'IR default)
-		(cons 'MAR default)
-		(cons 'MDR default))))))
+              (list
+                (cons 0 (bytes 0 0 0 0))
+                (cons 30 (integer->integer-bytes stack-pointer word-size #f #t))
+                (cons 31 (integer->integer-bytes return-address word-size #f #t))
+                (cons 'HI default)
+                (cons 'LO default)
+                (cons 'PC (integer->integer-bytes pc word-size #f #t))
+                (cons 'IR default)
+                (cons 'MAR default)
+                (cons 'MDR default))))))
 
 ;; get the value of a single register
 (define/contract
@@ -115,15 +115,15 @@
   (string-join
     (for/list ([i (range 1 32)])
       (format "$~a = 0x~a   ~a"
-	      (~r i
-		  #:sign #f
-		  #:base 10
-		  #:min-width 2
-		  #:pad-string "0")
-	      (~r (integer-bytes->integer (registerfile-ref rf i) #f #t)
-		  #:sign #f
-		  #:base 16
-		  #:min-width 8
-		  #:pad-string "0")
-	      (if (zero? (modulo i 4)) "\n" ""))) ""))
+              (~r i
+                  #:sign #f
+                  #:base 10
+                  #:min-width 2
+                  #:pad-string "0")
+              (~r (integer-bytes->integer (registerfile-ref rf i) #f #t)
+                  #:sign #f
+                  #:base 16
+                  #:min-width 8
+                  #:pad-string "0")
+              (if (zero? (modulo i 4)) "\n" ""))) ""))
 

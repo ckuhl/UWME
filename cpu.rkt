@@ -4,20 +4,20 @@
 
 (provide run-cpu ; run the processor
 
-	 ;; global variables
-	 show-binary
-	 show-more
-	 start-time
-	 show-verbose)
+         ;; global variables
+         show-binary
+         show-more
+         start-time
+         show-verbose)
 
 (require racket/contract
-	 racket/format ; ~r
-	 racket/math ; exact-round
+         racket/format ; ~r
+         racket/math ; exact-round
 
-	 "constants.rkt" ; magic numbers
-	 "memory.rkt" ; memory
-	 "registerfile.rkt" ; registers
-	 "word.rkt") ; word
+         "constants.rkt" ; magic numbers
+         "memory.rkt" ; memory
+         "registerfile.rkt" ; registers
+         "word.rkt") ; word
 
 ; global configuration
 (define show-binary (make-parameter #f))
@@ -43,11 +43,11 @@
   ;; TODO remove? global state for loop timer =================================
   (when (show-verbose)
     (printf "Cycle #~a, time: ~ams~n"
-	    (cycle-count)
-	    (/ (round (* 1000
-			 (- (current-inexact-milliseconds)
-			    (cycle-timer))))
-	       1000)))
+            (cycle-count)
+            (/ (round (* 1000
+                         (- (current-inexact-milliseconds)
+                            (cycle-timer))))
+               1000)))
   (cycle-timer (current-inexact-milliseconds))
   (cycle-count (add1 (cycle-count)))
   ;; ==========================================================================
@@ -58,29 +58,29 @@
      (eprintf "MIPS program completed normally.~n")
      (when (show-more)
        (eprintf "~a cycles in ~as, VM freq. ~akHz~n"
-		(cycle-count)
-		(/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
-		(/ (cycle-count) (- (current-inexact-milliseconds) (start-time))))) ; Hz / ms == kHz / s
+                (cycle-count)
+                (/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
+                (/ (cycle-count) (- (current-inexact-milliseconds) (start-time))))) ; Hz / ms == kHz / s
      (eprintf "~a~n" (format-registerfile rf))
      (exit 0)] ; quit gracefully
     [else
       (begin
-	(when (show-binary)
-	  (printf "~a: ~a~n"
-		  (format-word-hex (bytes->word (registerfile-ref rf 'PC)))
-		  (format-word-binary (bytes->word (memory-ref mem pc-value)))))
+        (when (show-binary)
+          (printf "~a: ~a~n"
+                  (format-word-hex (bytes->word (registerfile-ref rf 'PC)))
+                  (format-word-binary (bytes->word (memory-ref mem pc-value)))))
 
-	(decode
-	  (registerfile-set-swap
-	    rf
-	    'IR (memory-ref mem pc-value)
-	    'PC (integer->integer-bytes (+ pc-value 4) word-size #f #t))
-	  mem))]))
+        (decode
+          (registerfile-set-swap
+            rf
+            'IR (memory-ref mem pc-value)
+            'PC (integer->integer-bytes (+ pc-value 4) word-size #f #t))
+          mem))]))
 
 ;; decode :: interpret the current instruction
 (define/contract (decode rf mem)
-		 (registerfile? memory? . -> . void?)
-		 (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
+                 (registerfile? memory? . -> . void?)
+                 (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
 
 
 ;; execute :: update rf and/or memory based on instruction
@@ -91,19 +91,19 @@
     fetch
     (apply
       (hash-ref opcodes
-		(word-op w)
-		(lambda () (raise-user-error
-			     'CPU
-			     "given opcode ~b does not exist"
-			     (~r (word-op w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
+                (word-op w)
+                (lambda () (raise-user-error
+                             'CPU
+                             "given opcode ~b does not exist"
+                             (~r (word-op w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
       (list w rf mem))))
 
 
 ;; helpers
 (define/contract (compute-offset-addr rf w)
-		 (registerfile? word? . -> . exact-integer?)
-		 (+ (registerfile-integer-ref rf (word-rs w) #f))
-		 (word-i w))
+                 (registerfile? word? . -> . exact-integer?)
+                 (+ (registerfile-integer-ref rf (word-rs w) #f))
+                 (word-i w))
 
 
 ;; ===========================================================================
@@ -114,13 +114,13 @@
   (r-type w rf mem)
   (word? registerfile? memory? . -> . (list/c registerfile? memory?))
   (apply (hash-ref
-	   functs
-	   (word-fn w)
-	   (lambda () (raise-user-error
-			'ALU
-			"given funct ~a does not exist"
-			(~r (word-fn w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
-	 (list w rf mem)))
+           functs
+           (word-fn w)
+           (lambda () (raise-user-error
+                        'ALU
+                        "given funct ~a does not exist"
+                        (~r (word-fn w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
+         (list w rf mem)))
 
 ;; lw :: $t = MEM [$s + i]
 (define/contract
@@ -156,12 +156,12 @@
   (list
     (cond
       [(equal? (registerfile-ref rf (word-rs w))
-	       (registerfile-ref rf (word-rt w)))
+               (registerfile-ref rf (word-rt w)))
        (registerfile-integer-set
-	 rf
-	 'PC
-	 (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size))
-	 #f)]
+         rf
+         'PC
+         (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size))
+         #f)]
       [else rf])
     mem))
 
@@ -172,12 +172,12 @@
   (list
     (cond
       [(not (equal? (registerfile-ref rf (word-rs w))
-		    (registerfile-ref rf (word-rt w))))
+                    (registerfile-ref rf (word-rt w))))
        (registerfile-integer-set
-	 rf
-	 'PC (+ (registerfile-integer-ref rf 'PC #f)
-		(* (word-i w) word-size))
-	 #f)]
+         rf
+         'PC (+ (registerfile-integer-ref rf 'PC #f)
+                (* (word-i w) word-size))
+         #f)]
       [else rf])
     mem))
 
@@ -186,10 +186,10 @@
 (define opcodes
   (make-immutable-hash
     (list (cons r-type-opcode r-type)
-	  (cons lw-opcode lw)
-	  (cons sw-opcode sw)
-	  (cons beq-opcode beq)
-	  (cons bne-opcode bne))))
+          (cons lw-opcode lw)
+          (cons sw-opcode sw)
+          (cons beq-opcode beq)
+          (cons bne-opcode bne))))
 
 
 
@@ -214,7 +214,7 @@
       rf
       (word-rd w)
       (+ (registerfile-integer-ref rf (word-rs w) #t)
-	 (registerfile-integer-ref rf (word-rt w) #t))
+         (registerfile-integer-ref rf (word-rt w) #t))
       #t)
     mem))
 
@@ -227,7 +227,7 @@
       rf
       (word-rd w)
       (- (registerfile-integer-ref rf (word-rs w) #t)
-	 (registerfile-integer-ref rf (word-rt w) #t))
+         (registerfile-integer-ref rf (word-rt w) #t))
       #t)
     mem))
 
@@ -243,7 +243,7 @@
       #t
       'HI
       (arithmetic-shift (bitwise-and (* s t) hi-result-mask) ; mask off LO
-			(- (* word-size 8))) ; Shift to fit word
+                        (- (* word-size 8))) ; Shift to fit word
       'LO
       (bitwise-and (* s t) lo-result-mask))
     mem))
@@ -311,19 +311,19 @@
     (registerfile-set-swap
       rf
       (word-rd w) (memory-ref
-		    mem
-		    (integer-bytes->integer (registerfile-ref rf 'PC) #f #t))
+                    mem
+                    (integer-bytes->integer (registerfile-ref rf 'PC) #f #t))
       'PC (integer->integer-bytes
-	    (+ word-size
-	       (registerfile-integer-ref rf 'PC #f))
-	    word-size
-	    #f
-	    #t)))
+            (+ word-size
+               (registerfile-integer-ref rf 'PC #f))
+            word-size
+            #f
+            #t)))
 
   (when (show-binary)
     (printf "~a: ~a~n"
-	    (format-word-hex (bytes->word (registerfile-ref new-rf 'PC)))
-	    (format-word-binary (bytes->word (registerfile-ref new-rf (word-rd w))))))
+            (format-word-hex (bytes->word (registerfile-ref new-rf 'PC)))
+            (format-word-binary (bytes->word (registerfile-ref new-rf (word-rd w))))))
 
   (list new-rf mem))
 
@@ -371,16 +371,16 @@
 (define functs
   (make-immutable-hash
     (list (cons add-funct  add)
-	  (cons sub-funct   sub)
-	  (cons mult-funct  mult)
-	  (cons multu-funct multu)
-	  (cons div-funct   div)
-	  (cons divu-funct  divu)
-	  (cons mfhi-funct  mfhi)
-	  (cons mflo-funct  mflo)
-	  (cons lis-funct   lis)
-	  (cons slt-funct   slt)
-	  (cons sltu-funct  sltu)
-	  (cons jr-funct    jr)
-	  (cons jalr-funct  jalr))))
+          (cons sub-funct   sub)
+          (cons mult-funct  mult)
+          (cons multu-funct multu)
+          (cons div-funct   div)
+          (cons divu-funct  divu)
+          (cons mfhi-funct  mfhi)
+          (cons mflo-funct  mflo)
+          (cons lis-funct   lis)
+          (cons slt-funct   slt)
+          (cons sltu-funct  sltu)
+          (cons jr-funct    jr)
+          (cons jalr-funct  jalr))))
 

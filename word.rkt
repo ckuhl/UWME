@@ -4,19 +4,19 @@
 
 ; TODO can I bind a contract to the struct at definition instead of at provision?
 (provide (struct-out word)
-	 bytes->word ; convert a string of four bytes to a word
-	 word->bytes ; convert a word to a string of bytes
-	 integer->word ; convert an integer to a word
-	 word->integer ; convert a word to an integer
-	 format-word-binary ; format a word as a binary string
-	 format-word-hex ; format a word as a hex string
+         bytes->word ; convert a string of four bytes to a word
+         word->bytes ; convert a word to a string of bytes
+         integer->word ; convert an integer to a word
+         word->integer ; convert a word to an integer
+         format-word-binary ; format a word as a binary string
+         format-word-hex ; format a word as a hex string
 
-	 ; debugging tools
-	 make-r-type-word)
+         ; debugging tools
+         make-r-type-word)
 
 (require racket/contract ; contracts
-	 racket/format ; format word as binary or hex
-	 "constants.rkt") ; magic numbers
+         racket/format ; format word as binary or hex
+         "constants.rkt") ; magic numbers
 
 ; define helper
 (struct word (raw op rs rt rd shmt fn i addr)
@@ -58,22 +58,22 @@
   (format-word-binary w)
   (word? . -> . string?)
   (format "~a"
-	  (~r (word-raw w)
-	      #:sign #f
-	      #:base 2
-	      #:min-width 32
-	      #:pad-string "0")))
+          (~r (word-raw w)
+              #:sign #f
+              #:base 2
+              #:min-width 32
+              #:pad-string "0")))
 
 ;; TODO there's a way to put this inside of the struct using #:method
 (define/contract
   (format-word-hex w)
   (word? . -> . string?)
   (format "~a"
-	  (~r (word-raw w)
-	      #:sign #f
-	      #:base 16
-	      #:min-width 8
-	      #:pad-string "0")))
+          (~r (word-raw w)
+              #:sign #f
+              #:base 16
+              #:min-width 8
+              #:pad-string "0")))
 
 (define/contract
   (make-r-type-word rs rt rd funct)
