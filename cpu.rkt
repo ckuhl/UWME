@@ -55,13 +55,12 @@
   (define pc-value (registerfile-integer-ref rf 'PC #f))
   (cond
     [(equal? pc-value return-address)
-     (begin
-       (eprintf "MIPS program completed normally.~n")
-       (when (show-more)
-	 (eprintf "~a cycles in ~as, VM freq. ~akHz~n"
-		  (cycle-count)
-		  (/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
-		  (/ (cycle-count) (- (current-inexact-milliseconds) (start-time)))))) ; Hz / ms == kHz / s
+     (eprintf "MIPS program completed normally.~n")
+     (when (show-more)
+       (eprintf "~a cycles in ~as, VM freq. ~akHz~n"
+		(cycle-count)
+		(/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
+		(/ (cycle-count) (- (current-inexact-milliseconds) (start-time))))) ; Hz / ms == kHz / s
      (eprintf "~a~n" (format-registerfile rf))
      (exit 0)] ; quit gracefully
     [else
@@ -144,8 +143,8 @@
   (cond
     ; writing to MMIO
     [(equal? addr mmio-write-address)
-     (begin (write-byte (registerfile-ref rf (word-rt w) (current-output-port)))
-	    (list rf mem))]
+     (write-byte (registerfile-ref rf (word-rt w) (current-output-port)))
+     (list rf mem)]
     ; write to memory from register
     [else
       (list rf (memory-set mem addr (registerfile-ref rf (word-rt w))))]))
