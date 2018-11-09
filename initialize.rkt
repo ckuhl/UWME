@@ -2,8 +2,6 @@
 
 ; MIPS VM: Emulate a MIPS computer!
 
-(provide run) ; run the entire system!
-
 (require racket/contract ; contracts
 	 racket/cmdline ; command-line arguments
 	 racket/list ; range
@@ -115,3 +113,5 @@
       #b00001 (integer->integer-bytes array-offset word-size #t #t)
       #b00010 (integer->integer-bytes array-size word-size #t #t))))
 
+
+(run)

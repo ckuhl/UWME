@@ -3,8 +3,8 @@
 BUILD_DIR=compiled
 DIST_DIR=dist
 
-MAIN=main
-PROJECT=UWME
+MAIN=initialize
+PROJECT=functional-vm
 EXAMPLE_DIR=examples
 DEMO=${EXAMPLE_DIR}/collatz.mips
 
@@ -26,7 +26,7 @@ debug: ## Run a demonstration program with debugging enabled
 
 demo: ## Run a series of demonstration programs
 	# 77031 has the longest number of iterations of any number under 100K
-	echo "0 77031" | racket main.rkt --twoints --more-info ${DEMO}
+	echo "0 77031" | racket ${MAIN}.rkt --twoints --more-info ${DEMO}
 
 help: ## Print this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \

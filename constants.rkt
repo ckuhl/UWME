@@ -83,10 +83,10 @@
 (define return-address #x8123456c)
 
 ; next byte of stdin will be placed into LSB of dest register
-(define     mmio-read-address #xffff0004)
+(define mmio-read-address #xffff0004)
 
 ; if you sw here, the LSB will be written out
-(define    mmio-write-address #xFFFF000C)
+(define mmio-write-address #xFFFF000C)
 
 ; TODO find way to optionally override default values
 (define stack-pointer  #x01000000)
