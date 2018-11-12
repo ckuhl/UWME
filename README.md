@@ -1,16 +1,20 @@
-# uwme
+# UWME
+
 ## UnderWhelming MIPS Emulator
-_You can [read the project log](https://ckuhl.com/blog/tag/mips-vm/) on my
+_You can [about the project](https://ckuhl.com/portfolio/mips-vm/) on my
 website!_
 
+
 ## University of Waterloo MIPS Virtual Machine Emulator
+
 UWME is a MIPS computer emulator. Specifically, it emulates the the
 specification used in the University of Waterloo's [Foundations of Sequential
 Programs course](https://www.student.cs.uwaterloo.ca/~cs241/), affectionately
 known as "Baby compilers".
 
 
-## Demonstration
+## Example
+
 ```
 $ racket main.rkt --twoints examples/collatz.mips
 Enter value for register 1: 0
@@ -27,7 +31,9 @@ $25 = 0x00000000   $26 = 0x00000000   $27 = 0x00000000   $28 = 0x00000000
 $29 = 0x00000000   $30 = 0x01000000   $31 = 0x8123456c
 ```
 
+
 ## How to use it
+
 To emulate `java mips.twoints`:
 
 `racket main.rkt --twoints <binary>`
@@ -39,6 +45,7 @@ To emulate `java mips.array`:
 
 
 ## Read more
+
 I blogged about the project as I developed it.
 
 1. [MIPS VM part 1: Planning](https://ckuhl.com/blog/mips-vm-planning/)
@@ -46,3 +53,9 @@ I blogged about the project as I developed it.
 3. [MIPS VM part 3: Cleanup](https://ckuhl.com/blog/mips-vm-cleanup/)
 4. [MIPS VM part 4: Completing](https://ckuhl.com/blog/mips-vm-completing/)
 
+
+## To do
+
+- [ ] Use closures instead of global variables
+- [ ] Write unit tests for each opcode / function
+- [ ] Remove TODOs from code

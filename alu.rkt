@@ -1,6 +1,6 @@
 #lang racket/base
 
-; ALU: Mathematical actions
+; ALU: Mathematical actions on the registerfile
 
 (provide name-to-function) ; decode opcode names to functions
 
@@ -16,10 +16,12 @@
 (define show-binary (make-parameter #f))
 
 
-;; Exported
+;; Look up ALU functions by their name
+;; Hash of: Identifier -> ((word registerfile memoryfile) -> (list registerfile memoryfile))
 (define name-to-function
   (make-immutable-hash
     (list
+
       ; add :: $d = $s + $t
       (cons
         'add
@@ -66,6 +68,7 @@
               (bitwise-and (* s t) lo-result-mask))
             mem)))
 
+
       ;; multu :: $HI:$LO = $rs * $rt
       (cons
         'multu
@@ -79,6 +82,7 @@
               'HI (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-size 8)))
               'LO (bitwise-and (* s t) lo-result-mask))
             mem)))
+
 
       ;; div :: $LO = $s / $t, $HI = $s % $t
       (cons
@@ -95,6 +99,7 @@
               'LO (quotient s t))
             mem)))
 
+
       ;; divu :: $LO = $s / $t, $HI = $s % $t
       (cons
         'divu
@@ -109,17 +114,20 @@
               'LO (quotient s t))
             mem)))
 
+
       ;; mfhi :: $d = $HI
       (cons
         'mfhi
         (lambda ( w rf mem)
           (list (registerfile-set rf (word-rd w) (registerfile-ref rf 'HI)) mem)))
 
+
       ;; mflo :: $d = $LO
       (cons
         'mflo
         (lambda ( w rf mem)
           (list (registerfile-set rf (word-rd w) (registerfile-ref rf 'LO)) mem)))
+
 
       ;; lis :: d = MEM[pc]; pc += 4
       (cons
@@ -145,6 +153,7 @@
 
           (list new-rf mem)))
 
+
       ;; slt :: $d = 1 if $s < $t; 0 otherwise
       (cons
         'slt
@@ -154,6 +163,7 @@
           (list
             (registerfile-integer-set (word-rd w) (if (< s t) 1 0) #f)
             mem)))
+
 
       ;; sltu :: $d = 1 if $s < $t; 0 otherwise
       (cons
@@ -165,6 +175,7 @@
             (registerfile-integer-set rf (word-rd w) (if (< s t) 1 0) #f)
             mem)))
 
+
       ;; jr :: pc = $s
       (cons
         'jr
@@ -172,6 +183,7 @@
           (list
             (registerfile-set rf 'PC (registerfile-ref rf (word-rs w)))
             mem)))
+
 
       ;; jalr :: temp = $s; $31 = pc; $PC = temp
       (cons

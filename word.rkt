@@ -18,9 +18,10 @@
          racket/format ; format word as binary or hex
          "constants.rkt") ; magic numbers
 
-; define helper
+
 (struct word (raw op rs rt rd shmt fn i addr)
   #:transparent)
+
 
 (define/contract
   (bytes->word bstr)

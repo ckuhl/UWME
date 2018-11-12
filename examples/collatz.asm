@@ -1,4 +1,6 @@
-;; collatz conjecture
+;; collatz conjecture (recursive / loop)
+; INPUT: n, stored in $2
+; OUTPUT: the number of steps to reach the base case, stored in $3
 
 init:
 lis $11

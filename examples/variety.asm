@@ -1,3 +1,8 @@
+; variety
+; INPUT: Nothing
+; OUTPUT: ???
+; PURPOSE: Test a variety of instructions
+
 lis $1
 .word 65
 lis $2

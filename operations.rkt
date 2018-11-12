@@ -1,6 +1,6 @@
 #lang racket/base
 
-; Operations: Opcodes and their actions
+; Operations: CPU operations on the registerfile and memory
 
 (provide name-to-operation) ; decode opcode names to functions
 
@@ -14,19 +14,15 @@
          "word.rkt") ; word
 
 
-
-
-
-;; helper
-(define/contract (compute-offset-addr rf w)
+;; Helpers
+(define/contract
+  (compute-offset-addr rf w)
                  (registerfile? word? . -> . exact-integer?)
                  (+ (registerfile-integer-ref rf (word-rs w) #f))
                  (word-i w))
 
-
-
-;; ===========================================================================
-; Operations (i.e. switching on `opcode`)
+;; Look up opcode functions by their name
+;; Hash of: Identifier -> ((word registerfile memoryfile) -> (list registerfile memoryfile))
 (define name-to-operation
   (make-immutable-hash
     (list
@@ -44,6 +40,7 @@
                                 (~r (word-fn w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
                  (list w rf mem))))
 
+
       ;; lw :: $t = MEM [$s + i]
       (cons
         'lw
@@ -57,6 +54,7 @@
             [else
               (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)])))
 
+
       ;; sw :: MEM [$s + i] = $t
       (cons 'sw
             (lambda (w rf mem)
@@ -69,6 +67,7 @@
                 ; write to memory from register
                 [else
                   (list rf (memory-set mem addr (registerfile-ref rf (word-rt w))))])))
+
 
       ;; beq :: if ($s == $t) pc += i * 4
       (cons
@@ -86,6 +85,7 @@
               [else rf])
             mem)))
 
+
       ;; bne :: if ($s != $t) pc += i * 4
       (cons
         'bne
@@ -101,4 +101,5 @@
                  #f)]
               [else rf])
             mem)))
+
       )))

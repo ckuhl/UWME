@@ -2,7 +2,6 @@
 
 ; implement the registerfile of a MIPS processor
 
-
 (provide initialize-registerfile ; set to default values
          registerfile? ; predicate
          registerfile-ref ; get register value
