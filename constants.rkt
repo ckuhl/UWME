@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide (all-defined-out)) ; only magic numbers in here
+(provide (all-defined-out))
+
 
 ; Bit masks ==================================================================
 ;    bit 31                                 bit 0
@@ -44,6 +45,7 @@
 (define       lsb-mask #x00000000000000000000000011111111)
 
 ; Offsets ====================================================================
+; (from rightmost bit)
 (define opcode-offset -26)
 (define rs-offset -21)
 (define rt-offset -16)
@@ -56,28 +58,31 @@
 
 
 ; opcodes ====================================================================
-(define r-type-opcode #b000000)
-(define     lw-opcode #b100011)
-(define     sw-opcode #b101011)
-(define    beq-opcode #b000100)
-(define    bne-opcode #b000101)
+(define opcode-to-name
+  (make-immutable-hash
+    '((#b000000 . r-type)
+      (#b000000 . lw)
+      (#b101011 . sw)
+      (#b000100 . beq)
+      (#b000101 . bne))))
 
 
-; R-type funct codes =========================================================
-(define   add-funct #b100000)
-(define   sub-funct #b100010)
-(define  mult-funct #b011000)
-(define multu-funct #b011001)
-(define   div-funct #b011010)
-(define  divu-funct #b011011)
-(define  mfhi-funct #b010000)
-(define  mflo-funct #b010010)
-(define   lis-funct #b010100)
-(define   slt-funct #b101010)
-(define  sltu-funct #b101011)
-(define    jr-funct #b001000)
-(define  jalr-funct #b001001)
-
+; R-type function codes ======================================================
+(define funct-to-name
+  (make-immutable-hash
+    '((#b100000 . add)
+      (#b100010 . sub)
+      (#b011000 . mult )
+      (#b011001 . multu)
+      (#b011010 . div)
+      (#b011011 . divu)
+      (#b010000 . mfhi)
+      (#b010010 . mflo)
+      (#b010100 . lis)
+      (#b101010 . slt)
+      (#b101011 . sltu)
+      (#b001000 . jr)
+      (#b001001 . jalr))))
 
 ;; Special addresses ============================================================
 (define return-address #x8123456c)

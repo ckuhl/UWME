@@ -22,7 +22,12 @@ clean: ## Remove temporary files
 
 debug: ## Run a demonstration program with debugging enabled
 	# 47 is the largest fibonacci number that fits in a 32 bit integer
-	echo "0 47" | racket -l errortrace -u ${MAIN}.rkt --twoints ${DEMO}
+	echo "0 47" | racket -l errortrace -u ${MAIN}.rkt \
+		--twoints \
+		--more-info \
+		--verbose \
+		--show-binary \
+		${DEMO}
 
 demo: ## Run a series of demonstration programs
 	# 77031 has the longest number of iterations of any number under 100K

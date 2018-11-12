@@ -5,24 +5,13 @@
 Icon
 
 # Racket
-## Compilation
+## Compiled
 compiled/
-UWME*
-!UWME.rkt
 
-## Temporary files
+## Temporary
 *~
-
-## excutables
-### Linux
-mips-vm
-### Windows
-*.exe
-### MacOS
-*.App
 
 # Project files
 ## Assembler from cs241
 ### https://uwaterloo.ca/secretariat/policies-procedures-guidelines/policy-71
 asm.rkt
-
