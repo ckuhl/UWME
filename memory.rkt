@@ -12,6 +12,12 @@
 
 (require racket/contract)
 
+
+;; Constants
+(define MEMORY-SIZE #x01000000)
+(define MEMORY-LOAD-OFFSET #x00000000)
+
+
 ;; internal sparse list representation
 ;; Num Num Hash -> memory
 (struct memory (k default _program-end _hash)

@@ -1,102 +1,113 @@
 #lang racket/base
 
-; CPU: Modifies register and memory
+; Operations: CPU operations on the registerfile and memory
 
-(provide run-cpu ; run the processor
+(provide name-to-operation) ; decode opcode names to functions
 
-         ;; global variables
-         show-binary
-         show-more
-         start-time
-         show-verbose)
-
-(require racket/contract
+(require racket/contract ; ->
          racket/format ; ~r
-         racket/math ; exact-round
 
+         "alu.rkt" ; name-to-function
          "constants.rkt" ; magic numbers
-         "operations.rkt" ; name-to-operation
          "memory.rkt" ; memory
          "registerfile.rkt" ; registers
          "word.rkt") ; word
 
-; global configuration
-(define show-binary (make-parameter #f))
-(define show-more (make-parameter #f))
-(define show-verbose (make-parameter #f))
+;; Constants
+; next byte of stdin will be placed into LSB of dest register
+(define mmio-read-address #xffff0004)
 
-(define start-time (make-parameter (current-inexact-milliseconds)))
-(define cycle-timer (make-parameter (current-inexact-milliseconds)))
-(define cycle-count (make-parameter 0))
+; if you sw here, the LSB will be written out
+(define mmio-write-address #xFFFF000C)
 
 
-;; wrapper function to run everything
+;; Helpers
 (define/contract
-  (run-cpu rf mem)
-  (registerfile? memory? . -> . void?)
-  (fetch rf mem))
+  (compute-offset-addr rf w)
+  (registerfile? word? . -> . exact-integer?)
+  (+ (registerfile-integer-ref rf (word-rs w) #f))
+  (word-i w))
 
-;; fetch :: get next instruction from memory and update $PC
-(define/contract
-  (fetch rf mem)
-  (registerfile? memory? . -> . void?)
+;; Look up opcode functions by their name
+;; Hash of: Identifier -> ((word registerfile memoryfile) -> (list registerfile memoryfile))
+(define name-to-operation
+  (make-immutable-hash
+    (list
 
-  ;; TODO remove? global state for loop timer =================================
-  (when (show-verbose)
-    (printf "Cycle #~a, time: ~ams~n"
-            (cycle-count)
-            (/ (round (* 1000
-                         (- (current-inexact-milliseconds)
-                            (cycle-timer))))
-               1000)))
-  (cycle-timer (current-inexact-milliseconds))
-  (cycle-count (add1 (cycle-count)))
-  ;; ==========================================================================
-
-  (define pc-value (registerfile-integer-ref rf 'PC #f))
-  (cond
-    [(equal? pc-value return-address)
-     (eprintf "MIPS program completed normally.~n")
-     (when (show-more)
-       (eprintf "~a cycles in ~as, VM freq. ~akHz~n"
-                (cycle-count)
-                (/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
-                (/ (cycle-count) (- (current-inexact-milliseconds) (start-time))))) ; Hz / ms == kHz / s
-     (eprintf "~a~n" (format-registerfile rf))
-     (exit 0)] ; quit gracefully
-    [else
-      (begin
-        (when (show-binary)
-          (printf "~a: ~a~n"
-                  (format-word-hex (bytes->word (registerfile-ref rf 'PC)))
-                  (format-word-binary (bytes->word (memory-ref mem pc-value)))))
-
-        (decode
-          (registerfile-set-swap
-            rf
-            'IR (memory-ref mem pc-value)
-            'PC (integer->integer-bytes (+ pc-value 4) word-size #f #t))
-          mem))]))
-
-;; decode :: interpret the current instruction
-(define/contract (decode rf mem)
-                 (registerfile? memory? . -> . void?)
-                 (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
+      ;; R-type
+      (cons
+        'r-type
+        (lambda (w rf mem)
+          (apply (hash-ref
+                   name-to-function
+                   (hash-ref funct-to-name (word-fn w))
+                   (lambda () (raise-user-error
+                                'ALU
+                                "given funct ~a does not exist"
+                                (~r (word-fn w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
+                 (list w rf mem))))
 
 
-;; execute :: update rf and/or memory based on instruction
-(define/contract
-  (execute w rf mem)
-  (word? registerfile? memory? . -> . void?)
-  (printf "~a~n" (hash-ref opcode-to-name (word-op w)))
-  (apply
-    fetch
-    (apply
-      (hash-ref name-to-operation
-                (hash-ref opcode-to-name (word-op w))
-                (lambda () (raise-user-error
-                             'CPU
-                             "given opcode ~b does not exist"
-                             (~r (word-op w) #:sign #f #:base 2 #:min-width 6 #:pad-string "0"))))
-      (list w rf mem))))
+      ;; lw :: $t = MEM [$s + i]
+      (cons
+        'lw
+        (lambda (w rf mem)
+          (define addr (compute-offset-addr rf w))
+          (cond
+            ; reading from MMIO
+            [(equal? addr mmio-read-address)
+             (list (registerfile-set rf (word-rt w) (bitwise-and (read-byte (current-input-port)) lsb-mask)) mem)]
+            ; reading from memory
+            [else
+              (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)])))
 
+
+      ;; sw :: MEM [$s + i] = $t
+      (cons
+        'sw
+            (lambda (w rf mem)
+              (define addr (compute-offset-addr rf w))
+              (cond
+                ; writing to MMIO
+                [(equal? addr mmio-write-address)
+                 (write-byte (registerfile-ref rf (word-rt w) (current-output-port)))
+                 (list rf mem)]
+                ; write to memory from register
+                [else
+                  (list rf (memory-set mem addr (registerfile-ref rf (word-rt w))))])))
+
+
+      ;; beq :: if ($s == $t) pc += i * 4
+      (cons
+        'beq
+        (lambda (w rf mem)
+          (list
+            (cond
+              [(equal? (registerfile-ref rf (word-rs w))
+                       (registerfile-ref rf (word-rt w)))
+               (registerfile-integer-set
+                 rf
+                 'PC
+                 (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size))
+                 #f)]
+              [else rf])
+            mem)))
+
+
+      ;; bne :: if ($s != $t) pc += i * 4
+      (cons
+        'bne
+        (lambda (w rf mem)
+          (list
+            (cond
+              [(not (equal? (registerfile-ref rf (word-rs w))
+                            (registerfile-ref rf (word-rt w))))
+               (registerfile-integer-set
+                 rf
+                 'PC (+ (registerfile-integer-ref rf 'PC #f)
+                        (* (word-i w) word-size))
+                 #f)]
+              [else rf])
+            mem)))
+
+      )))

@@ -1,24 +1,13 @@
 .DEFAULT_GOAL := help
 
-BUILD_DIR=compiled
-DIST_DIR=dist
-
 MAIN=initialize
-PROJECT=functional-vm
 EXAMPLE_DIR=examples
 DEMO=${EXAMPLE_DIR}/collatz.mips
 
 
-build: ## Build a standalone program
-	raco make ${MAIN}.rkt
-	raco exe ${MAIN}.rkt
-	raco distribute ${DIST_DIR} ${MAIN}
-	mv ${DIST_DIR} ${MAIN}
-	zip -r ${MAIN}.zip ${MAIN}
-
 .PHONY: clean debug run help
 clean: ## Remove temporary files
-	rm -f ${MAIN}.zip
+	rm -rf compiled/
 
 debug: ## Run a demonstration program with debugging enabled
 	# 47 is the largest fibonacci number that fits in a 32 bit integer

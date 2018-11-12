@@ -54,7 +54,7 @@
       ;; mult :: $HI:$LO = $rs * $rd
       (cons
         'mult
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (define s (registerfile-integer-ref rf (word-rs w) #t))
           (define t (registerfile-integer-ref rf (word-rt w) #t))
           (list
@@ -72,7 +72,7 @@
       ;; multu :: $HI:$LO = $rs * $rt
       (cons
         'multu
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (define s (registerfile-integer-ref rf (word-rs w) #f))
           (define t (registerfile-integer-ref rf (word-rt w) #f))
           (list
@@ -87,7 +87,7 @@
       ;; div :: $LO = $s / $t, $HI = $s % $t
       (cons
         'div
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (define s (registerfile-integer-ref rf (word-rs w) #t))
           (define t (registerfile-integer-ref rf (word-rt w) #t))
           (when (zero? t) (raise-user-error "CPU error: Division by zero"))
@@ -118,14 +118,14 @@
       ;; mfhi :: $d = $HI
       (cons
         'mfhi
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (list (registerfile-set rf (word-rd w) (registerfile-ref rf 'HI)) mem)))
 
 
       ;; mflo :: $d = $LO
       (cons
         'mflo
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (list (registerfile-set rf (word-rd w) (registerfile-ref rf 'LO)) mem)))
 
 
@@ -157,7 +157,7 @@
       ;; slt :: $d = 1 if $s < $t; 0 otherwise
       (cons
         'slt
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (define s (registerfile-integer-ref rf (word-rs w) #t))
           (define t (registerfile-integer-ref rf (word-rt w) #t))
           (list
@@ -168,7 +168,7 @@
       ;; sltu :: $d = 1 if $s < $t; 0 otherwise
       (cons
         'sltu
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (define s (registerfile-integer-ref rf (word-rs w) #f))
           (define t (registerfile-integer-ref rf (word-rt w) #f))
           (list
@@ -179,7 +179,13 @@
       ;; jr :: pc = $s
       (cons
         'jr
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
+          (when (not (zero? (word-rt w)))
+            (raise-user-error 'jr "$rt is expected to be zero for opcode jr"))
+
+          (when (not (zero? (word-rd w)))
+            (raise-user-error 'jr "$rd is expected to be zero for opcode jr"))
+
           (list
             (registerfile-set rf 'PC (registerfile-ref rf (word-rs w)))
             mem)))
@@ -188,7 +194,7 @@
       ;; jalr :: temp = $s; $31 = pc; $PC = temp
       (cons
         'jalr
-        (lambda ( w rf mem)
+        (lambda (w rf mem)
           (list
             (registerfile-set-swap
               rf

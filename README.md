@@ -54,6 +54,19 @@ I blogged about the project as I developed it.
 4. [MIPS VM part 4: Completing](https://ckuhl.com/blog/mips-vm-completing/)
 
 
+## Layout
+
+- `initialize.rkt` takes in command-line input, and starts the program
+- `cycle.rkt` contains the fetch-decode-execute loop
+  - `cpu.rkt` is a map of opcode names to functions
+  - `alu.rkt` is a map of funct names to functions
+- `constants.rkt` contains constants common to the entire project
+
+- `word.rkt` is a wrapper for a word, which exposes the relevant fields as integers
+- `registerfile.rkt` is a wrapper for the register file
+- `memory.rkt` is a wrapper for the memory of the program
+
+
 ## To do
 
 - [ ] Use closures instead of global variables

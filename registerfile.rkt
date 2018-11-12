@@ -22,6 +22,10 @@
          "constants.rkt") ; magic numbers
 
 
+;; Constants
+(define stack-pointer  #x01000000)
+
+
 ;; registerfile container
 ; k: default key value
 ; _impl: internal representation of registers

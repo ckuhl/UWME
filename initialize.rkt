@@ -7,7 +7,7 @@
          racket/list ; range
          racket/file ; file->bytes
 
-         "cpu.rkt" ; do processing
+         "cycle.rkt" ; do processing
          "registerfile.rkt" ; working space
          "memory.rkt" ; store things
          "constants.rkt") ; constants like `word-size`
@@ -16,9 +16,8 @@
 (define (run)
   (define loader-mode (make-parameter 'none))
   (define pc-initial-index (make-parameter 0))
-  ; show-binary imported from CPU?
 
-  ; TODO there is a way to do this functionally, maybe switch over?
+  ; TODO there is a way to do this functionally, maybe switch over? (use closures)
   (define source-file
     (command-line
       #:program "UWME"
@@ -100,10 +99,10 @@
 
   (define pairs
     (for/list ([i (range 0 array-size)])
-      (begin (eprintf "Enter array element ~a: " i)
-             (cons
-               (+ array-offset (* array-size word-size))
-               (integer->integer-bytes (read) word-size #t #t)))))
+      (eprintf "Enter array element ~a: " i)
+      (cons
+        (+ array-offset (* array-size word-size))
+        (integer->integer-bytes (read) word-size #t #t))))
 
 
   (list
