@@ -60,7 +60,7 @@
 (define opcode-to-name
   (make-immutable-hash
     '((#b000000 . r-type)
-      (#b000000 . lw)
+      (#b100011 . lw)
       (#b101011 . sw)
       (#b000100 . beq)
       (#b000101 . bne))))
