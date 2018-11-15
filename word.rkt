@@ -5,13 +5,13 @@
 ; TODO can I bind a contract to the struct at definition instead of at provision?
 (provide (struct-out word)
          bytes->word ; convert a string of four bytes to a word
-         format-word-binary ; format a word as a binary string
-         format-word-hex ; format a word as a hex string
+         word->binary-string ; format a word as a binary string
+         word->hex-string ; format a word as a hex string
 
-        bytes->signed
-        bytes->unsigned
-        signed->bytes
-        unsigned->bytes)
+         bytes->signed
+         bytes->unsigned
+         signed->bytes
+         unsigned->bytes)
 
 (require racket/contract ; contracts
          racket/format ; format word as binary or hex
@@ -19,7 +19,7 @@
          "constants.rkt")
 
 
-; CONSTANTS =================================================================
+; CONSTANTS ==================================================================
 ; Removed from constants.rkt because they're only used here
 
 ; Bit masks ==================================================================
@@ -71,7 +71,7 @@
 (define address-offset 0)
 
 
-;; TODO: Move these elsewhere
+;; Byte conversion helpers
 (define (bytes->signed b)
   (integer-bytes->integer b #t #t))
 
@@ -95,20 +95,19 @@
   (define val (bytes->unsigned bstr))
   (define signed-val (bytes->signed bstr))
   (word
-    val ; raw
-    (arithmetic-shift (bitwise-and opcode-mask    val) opcode-offset)    ; opcode
-    (arithmetic-shift (bitwise-and rs-mask        val) rs-offset)        ; rs
-    (arithmetic-shift (bitwise-and rt-mask        val) rt-offset)        ; rt
-    (arithmetic-shift (bitwise-and rd-mask        val) rd-offset)        ; rd
-    (arithmetic-shift (bitwise-and shamt-mask     val) shamt-offset)     ; shamt
-    (arithmetic-shift (bitwise-and funct-mask     val) funct-offset)     ; funct
-    (bytes->signed (subbytes bstr 2 4)) ; immediate (signed)
-    (arithmetic-shift (bitwise-and address-mask   val) address-offset))) ; addr
+    val ; raw value
+    (arithmetic-shift (bitwise-and opcode-mask val) opcode-offset)
+    (arithmetic-shift (bitwise-and rs-mask val) rs-offset)
+    (arithmetic-shift (bitwise-and rt-mask val) rt-offset)
+    (arithmetic-shift (bitwise-and rd-mask val) rd-offset)
+    (arithmetic-shift (bitwise-and shamt-mask val) shamt-offset)
+    (arithmetic-shift (bitwise-and funct-mask val) funct-offset)
+    (bytes->signed (subbytes bstr 2 4)) ; immediate
+    (arithmetic-shift (bitwise-and address-mask val) address-offset)))
 
 
-;; TODO there's a way to put this inside of the struct using #:method
 (define/contract
-  (format-word-binary w)
+  (word->binary-string w)
   (word? . -> . string?)
   (format "~a"
           (~r (word-raw w)
@@ -117,9 +116,9 @@
               #:min-width 32
               #:pad-string "0")))
 
-;; TODO there's a way to put this inside of the struct using #:method
+
 (define/contract
-  (format-word-hex w)
+  (word->hex-string w)
   (word? . -> . string?)
   (format "~a"
           (~r (word-raw w)

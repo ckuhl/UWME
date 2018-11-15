@@ -11,7 +11,7 @@
          memory-set-pairs) ; set a series of memory address as a list of key-value pairs
 
 (require racket/contract
-  "word.rkt")
+         "word.rkt")
 
 
 ;; Constants

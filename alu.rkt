@@ -4,7 +4,8 @@
 
 (provide name-to-function) ; decode opcode names to functions
 
-(require racket/format ; ~r
+(require racket/contract
+         racket/format ; ~r
 
          "constants.rkt" ; magic numbers
          "memory.rkt" ; memory
@@ -18,7 +19,9 @@
 
 ;; Look up ALU functions by their name
 ;; Hash of: Identifier -> ((word rf memoryfile) -> (list rf memoryfile))
-(define name-to-function
+(define/contract
+  name-to-function
+  (hash/c symbol? (word? rf? memory? . -> . (list/c rf? memory?)))
   (make-immutable-hash
     (list
 
@@ -141,8 +144,8 @@
 
           (when (show-binary)
             (printf "~a: ~a~n"
-                    (format-word-hex (bytes->word (rf-ref new-rf 'PC)))
-                    (format-word-binary (bytes->word (rf-ref new-rf (word-rd w))))))
+                    (word->hex-string (bytes->word (rf-ref new-rf 'PC)))
+                    (word->binary-string (bytes->word (rf-ref new-rf (word-rd w))))))
 
           (list new-rf mem)))
 

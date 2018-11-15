@@ -26,11 +26,13 @@
   (compute-offset-addr rf w)
   (rf? word? . -> . exact-integer?)
   (+ (bytes->unsigned (rf-ref rf (word-rs w)))
-  (word-i w)))
+     (word-i w)))
 
 ;; Look up opcode functions by their name
 ;; Hash of: Identifier -> ((word rf memoryfile) -> (list rf memoryfile))
-(define name-to-operation
+(define/contract
+  name-to-operation
+  (hash/c symbol? (word? rf? memory? . -> . (list/c rf? memory?)))
   (make-immutable-hash
     (list
 
@@ -65,16 +67,16 @@
       ;; sw :: MEM [$s + i] = $t
       (cons
         'sw
-            (lambda (w rf mem)
-              (define addr (compute-offset-addr rf w))
-              (cond
-                ; writing to MMIO
-                [(equal? addr mmio-write-address)
-                 (write-byte (rf-ref rf (word-rt w) (current-output-port)))
-                 (list rf mem)]
-                ; write to memory from register
-                [else
-                  (list rf (memory-set mem addr (rf-ref rf (word-rt w))))])))
+        (lambda (w rf mem)
+          (define addr (compute-offset-addr rf w))
+          (cond
+            ; writing to MMIO
+            [(equal? addr mmio-write-address)
+             (write-byte (rf-ref rf (word-rt w) (current-output-port)))
+             (list rf mem)]
+            ; write to memory from register
+            [else
+              (list rf (memory-set mem addr (rf-ref rf (word-rt w))))])))
 
 
       ;; beq :: if ($s == $t) pc += i * 4
@@ -86,8 +88,8 @@
               [(equal? (rf-ref rf (word-rs w))
                        (rf-ref rf (word-rt w)))
                (rf-set rf 'PC
-                 (unsigned->bytes (+ (bytes->unsigned (rf-ref rf 'PC))
-                  (* (word-i w) word-size))))]
+                       (unsigned->bytes (+ (bytes->unsigned (rf-ref rf 'PC))
+                                           (* (word-i w) word-size))))]
               [else rf])
             mem)))
 
@@ -103,7 +105,7 @@
                (rf-set
                  rf
                  'PC (unsigned->bytes (+ (bytes->unsigned (rf-ref rf 'PC))
-                        (* (word-i w) word-size))))]
+                                         (* (word-i w) word-size))))]
               [else rf])
             mem)))
 

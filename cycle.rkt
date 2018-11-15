@@ -20,6 +20,7 @@
          "registerfile.rkt" ; registers
          "word.rkt") ; word
 
+
 ; global configuration
 (define show-binary (make-parameter #f))
 (define show-more (make-parameter #f))
@@ -65,17 +66,17 @@
      (eprintf "~a~n" (format-rf rf))
      (exit 0)] ; quit gracefully
     [else
-        (when (show-binary)
-          (printf "~a: ~a~n"
-                  (format-word-hex (bytes->word (rf-ref rf 'PC)))
-                  (format-word-binary (bytes->word (memory-ref mem pc-value)))))
+      (when (show-binary)
+        (printf "~a: ~a~n"
+                (word->hex-string (bytes->word (rf-ref rf 'PC)))
+                (word->binary-string (bytes->word (memory-ref mem pc-value)))))
 
-        (decode
-          (rf-set-swap
-            rf
-            'IR (memory-ref mem pc-value)
-            'PC (unsigned->bytes (+ pc-value 4)))
-          mem)]))
+      (decode
+        (rf-set-swap
+          rf
+          'IR (memory-ref mem pc-value)
+          'PC (unsigned->bytes (+ pc-value 4)))
+        mem)]))
 
 ;; decode :: interpret the current instruction
 (define/contract (decode rf mem)
@@ -87,7 +88,6 @@
 (define/contract
   (execute w rf mem)
   (word? rf? memory? . -> . void?)
-  (printf "~a~n" (hash-ref opcode-to-name (word-op w)))
   (apply
     fetch
     (apply
