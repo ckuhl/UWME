@@ -1,6 +1,6 @@
 #lang racket/base
 
-; Operations: CPU operations on the registerfile and memory
+; Operations: CPU operations on the rf and memory
 
 (provide name-to-operation) ; decode opcode names to functions
 
@@ -24,12 +24,12 @@
 ;; Helpers
 (define/contract
   (compute-offset-addr rf w)
-  (registerfile? word? . -> . exact-integer?)
-  (+ (registerfile-integer-ref rf (word-rs w) #f))
-  (word-i w))
+  (rf? word? . -> . exact-integer?)
+  (+ (bytes->unsigned (rf-ref rf (word-rs w)))
+  (word-i w)))
 
 ;; Look up opcode functions by their name
-;; Hash of: Identifier -> ((word registerfile memoryfile) -> (list registerfile memoryfile))
+;; Hash of: Identifier -> ((word rf memoryfile) -> (list rf memoryfile))
 (define name-to-operation
   (make-immutable-hash
     (list
@@ -56,10 +56,10 @@
           (cond
             ; reading from MMIO
             [(equal? addr mmio-read-address)
-             (list (registerfile-set rf (word-rt w) (bitwise-and (read-byte (current-input-port)) lsb-mask)) mem)]
+             (list (rf-set rf (word-rt w) (bitwise-and (read-byte (current-input-port)) lsb-mask)) mem)]
             ; reading from memory
             [else
-              (list (registerfile-set rf (word-rt w) (memory-ref mem addr)) mem)])))
+              (list (rf-set rf (word-rt w) (memory-ref mem addr)) mem)])))
 
 
       ;; sw :: MEM [$s + i] = $t
@@ -70,11 +70,11 @@
               (cond
                 ; writing to MMIO
                 [(equal? addr mmio-write-address)
-                 (write-byte (registerfile-ref rf (word-rt w) (current-output-port)))
+                 (write-byte (rf-ref rf (word-rt w) (current-output-port)))
                  (list rf mem)]
                 ; write to memory from register
                 [else
-                  (list rf (memory-set mem addr (registerfile-ref rf (word-rt w))))])))
+                  (list rf (memory-set mem addr (rf-ref rf (word-rt w))))])))
 
 
       ;; beq :: if ($s == $t) pc += i * 4
@@ -83,13 +83,11 @@
         (lambda (w rf mem)
           (list
             (cond
-              [(equal? (registerfile-ref rf (word-rs w))
-                       (registerfile-ref rf (word-rt w)))
-               (registerfile-integer-set
-                 rf
-                 'PC
-                 (+ (registerfile-integer-ref rf 'PC #f) (* (word-i w) word-size))
-                 #f)]
+              [(equal? (rf-ref rf (word-rs w))
+                       (rf-ref rf (word-rt w)))
+               (rf-set rf 'PC
+                 (unsigned->bytes (+ (bytes->unsigned (rf-ref rf 'PC))
+                  (* (word-i w) word-size))))]
               [else rf])
             mem)))
 
@@ -100,13 +98,12 @@
         (lambda (w rf mem)
           (list
             (cond
-              [(not (equal? (registerfile-ref rf (word-rs w))
-                            (registerfile-ref rf (word-rt w))))
-               (registerfile-integer-set
+              [(not (equal? (rf-ref rf (word-rs w))
+                            (rf-ref rf (word-rt w))))
+               (rf-set
                  rf
-                 'PC (+ (registerfile-integer-ref rf 'PC #f)
-                        (* (word-i w) word-size))
-                 #f)]
+                 'PC (unsigned->bytes (+ (bytes->unsigned (rf-ref rf 'PC))
+                        (* (word-i w) word-size))))]
               [else rf])
             mem)))
 

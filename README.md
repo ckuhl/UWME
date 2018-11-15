@@ -34,12 +34,12 @@ $29 = 0x00000000   $30 = 0x01000000   $31 = 0x8123456c
 
 ## How to use it
 
-To emulate `java mips.twoints`:
+To emulate mips.twoints:
 
 `racket main.rkt --twoints <binary>`
 
 
-To emulate `java mips.array`:
+To emulate mips.array:
 
 `racket main.rkt --array <binary>`
 

@@ -10,7 +10,8 @@
          "cycle.rkt" ; do processing
          "registerfile.rkt" ; working space
          "memory.rkt" ; store things
-         "constants.rkt") ; constants like `word-size`
+         "constants.rkt"
+         "word.rkt") ; constants like `word-size`
 
 ;; Set up and run the virtual machine
 (define (run)
@@ -59,7 +60,7 @@
       filename))
 
   ; initialize registers and memory
-  (define registers (initialize-registerfile))
+  (define registers (initialize-rf))
   (define memory (initialize-memory (file->bytes source-file)))
 
   ; update registers and/or memory based on the flag set taken
@@ -79,20 +80,22 @@
 ;; Helper to load two integers from stdin into registers $1 and $2
 (define/contract
   (load-twoints rf)
-  (registerfile? . -> . registerfile?)
-  (registerfile-set-swap
-    rf
-    #b00001 (begin (eprintf "Enter value for register 1: ")
-                   (integer->integer-bytes (read) word-size #t #t))
-    #b00010 (begin (eprintf "Enter value for register 2: ")
-                   (integer->integer-bytes (read) word-size #t #t))))
+  (rf? . -> . rf?)
+  (rf-set
+    (rf-set rf
+            #b00001
+            (begin (eprintf "Enter value for register 1: ")
+                   (signed->bytes (read))))
+    #b00010
+    (begin (eprintf "Enter value for register 2: ")
+           (signed->bytes (read)))))
 
 ;; Helper to load an array of n integers from stdin into memory
 ;; place the starting address of the array in register $1, and the size of
 ;; the array in register $2
 (define/contract
   (load-array rf mem)
-  (registerfile? memory? . -> . (list/c registerfile? memory?))
+  (rf? memory? . -> . (list/c rf? memory?))
 
   (define array-size (begin (eprintf "Enter length of array: ") (read)))
   (define array-offset (memory-end-of-program mem))
@@ -102,15 +105,15 @@
       (eprintf "Enter array element ~a: " i)
       (cons
         (+ array-offset (* array-size word-size))
-        (integer->integer-bytes (read) word-size #t #t))))
+        (signed->bytes (read)))))
 
 
   (list
     (memory-set-pairs mem pairs)
-    (registerfile-set-swap
+    (rf-set-swap
       rf
-      #b00001 (integer->integer-bytes array-offset word-size #t #t)
-      #b00010 (integer->integer-bytes array-size word-size #t #t))))
+      #b00001 (signed->bytes array-offset)
+      #b00010 (signed->bytes array-size))))
 
 
 (run)

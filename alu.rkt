@@ -17,7 +17,7 @@
 
 
 ;; Look up ALU functions by their name
-;; Hash of: Identifier -> ((word registerfile memoryfile) -> (list registerfile memoryfile))
+;; Hash of: Identifier -> ((word rf memoryfile) -> (list rf memoryfile))
 (define name-to-function
   (make-immutable-hash
     (list
@@ -27,12 +27,12 @@
         'add
         (lambda (w rf mem)
           (list
-            (registerfile-integer-set
+            (rf-set
               rf
               (word-rd w)
-              (+ (registerfile-integer-ref rf (word-rs w) #t)
-                 (registerfile-integer-ref rf (word-rt w) #t))
-              #t)
+              (signed->bytes
+                (+ (bytes->signed (rf-ref rf (word-rs w)))
+                   (bytes->signed (rf-ref rf (word-rt w))))))
             mem)))
 
 
@@ -42,12 +42,11 @@
         (lambda
           (w rf mem)
           (list
-            (registerfile-integer-set
+            (rf-set
               rf
               (word-rd w)
-              (- (registerfile-integer-ref rf (word-rs w) #t)
-                 (registerfile-integer-ref rf (word-rt w) #t))
-              #t)
+              (signed->bytes (- (bytes->signed (rf-ref rf (word-rs w)))
+                                (bytes->signed (rf-ref rf (word-rt w))))))
             mem)))
 
 
@@ -55,17 +54,16 @@
       (cons
         'mult
         (lambda (w rf mem)
-          (define s (registerfile-integer-ref rf (word-rs w) #t))
-          (define t (registerfile-integer-ref rf (word-rt w) #t))
+          (define s (bytes->signed (rf-ref rf (word-rs w))))
+          (define t (bytes->signed (rf-ref rf (word-rt w))))
           (list
-            (registerfile-integer-set-swap
+            (rf-set-swap
               rf
-              #t
               'HI
-              (arithmetic-shift (bitwise-and (* s t) hi-result-mask) ; mask off LO
-                                (- (* word-size 8))) ; Shift to fit word
+              (signed->bytes (arithmetic-shift (bitwise-and (* s t) hi-result-mask) ; mask off LO
+                                               (- (* word-size 8)))) ; Shift to fit word
               'LO
-              (bitwise-and (* s t) lo-result-mask))
+              (signed->bytes (bitwise-and (* s t) lo-result-mask)))
             mem)))
 
 
@@ -73,14 +71,13 @@
       (cons
         'multu
         (lambda (w rf mem)
-          (define s (registerfile-integer-ref rf (word-rs w) #f))
-          (define t (registerfile-integer-ref rf (word-rt w) #f))
+          (define s (bytes->unsigned (rf-ref rf (word-rs w))))
+          (define t (bytes->unsigned (rf-ref (word-rt w))))
           (list
-            (registerfile-integer-set-swap
+            (rf-set-swap
               rf
-              #t
-              'HI (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-size 8)))
-              'LO (bitwise-and (* s t) lo-result-mask))
+              'HI (signed->bytes (arithmetic-shift (bitwise-and (* s t) hi-result-mask) (- (* word-size 8))))
+              'LO (signed->bytes (bitwise-and (* s t) lo-result-mask)))
             mem)))
 
 
@@ -88,15 +85,14 @@
       (cons
         'div
         (lambda (w rf mem)
-          (define s (registerfile-integer-ref rf (word-rs w) #t))
-          (define t (registerfile-integer-ref rf (word-rt w) #t))
+          (define s (bytes->signed (rf-ref rf (word-rs w))))
+          (define t (bytes->signed (rf-ref rf (word-rt w))))
           (when (zero? t) (raise-user-error "CPU error: Division by zero"))
           (list
-            (registerfile-integer-set-swap
+            (rf-set-swap
               rf
-              #f
-              'HI (remainder s t)
-              'LO (quotient s t))
+              'HI (unsigned->bytes (remainder s t))
+              'LO (unsigned->bytes (quotient s t)))
             mem)))
 
 
@@ -104,14 +100,14 @@
       (cons
         'divu
         (lambda (w rf mem)
-          (define s (registerfile-integer-ref rf (word-rs w) #f))
-          (define t (registerfile-integer-ref rf (word-rt w) #f))
+          (define s (bytes->unsigned (rf-ref rf (word-rs w))))
+          (define t (bytes->unsigned (rf-ref rf (word-rt w))))
           (when (zero? t) (raise-user-error "CPU error: Division by zero"))
           (list
-            (registerfile-integer-set
-              rf #f
-              'HI (remainder s t)
-              'LO (quotient s t))
+            (rf-set-swap
+              rf
+              'HI (unsigned->bytes (remainder s t))
+              'LO (unsigned->bytes (quotient s t)))
             mem)))
 
 
@@ -119,14 +115,14 @@
       (cons
         'mfhi
         (lambda (w rf mem)
-          (list (registerfile-set rf (word-rd w) (registerfile-ref rf 'HI)) mem)))
+          (list (rf-set rf (word-rd w) (rf-ref rf 'HI)) mem)))
 
 
       ;; mflo :: $d = $LO
       (cons
         'mflo
         (lambda (w rf mem)
-          (list (registerfile-set rf (word-rd w) (registerfile-ref rf 'LO)) mem)))
+          (list (rf-set rf (word-rd w) (rf-ref rf 'LO)) mem)))
 
 
       ;; lis :: d = MEM[pc]; pc += 4
@@ -134,22 +130,19 @@
         'lis
         (lambda (w rf mem)
           (define new-rf
-            (registerfile-set-swap
+            (rf-set-swap
               rf
-              (word-rd w) (memory-ref
-                            mem
-                            (integer-bytes->integer (registerfile-ref rf 'PC) #f #t))
-              'PC (integer->integer-bytes
-                    (+ word-size
-                       (registerfile-integer-ref rf 'PC #f))
-                    word-size
-                    #f
-                    #t)))
+              (word-rd w)
+              (memory-ref mem (bytes->unsigned (rf-ref rf 'PC)))
+              'PC
+              (unsigned->bytes
+                (+ word-size
+                   (bytes->unsigned (rf-ref rf 'PC))))))
 
           (when (show-binary)
             (printf "~a: ~a~n"
-                    (format-word-hex (bytes->word (registerfile-ref new-rf 'PC)))
-                    (format-word-binary (bytes->word (registerfile-ref new-rf (word-rd w))))))
+                    (format-word-hex (bytes->word (rf-ref new-rf 'PC)))
+                    (format-word-binary (bytes->word (rf-ref new-rf (word-rd w))))))
 
           (list new-rf mem)))
 
@@ -158,10 +151,12 @@
       (cons
         'slt
         (lambda (w rf mem)
-          (define s (registerfile-integer-ref rf (word-rs w) #t))
-          (define t (registerfile-integer-ref rf (word-rt w) #t))
+          (define s (bytes->signed (rf-ref rf (word-rs w))))
+          (define t (bytes->signed (rf-ref rf (word-rt w))))
           (list
-            (registerfile-integer-set (word-rd w) (if (< s t) 1 0) #f)
+            (rf-set rf
+                    (word-rd w)
+                    (unsigned->bytes (if (< s t) 1 0)))
             mem)))
 
 
@@ -169,10 +164,12 @@
       (cons
         'sltu
         (lambda (w rf mem)
-          (define s (registerfile-integer-ref rf (word-rs w) #f))
-          (define t (registerfile-integer-ref rf (word-rt w) #f))
+          (define s (bytes->unsigned (rf-ref rf (word-rs w))))
+          (define t (bytes->unsigned (rf-ref rf (word-rt w))))
           (list
-            (registerfile-integer-set rf (word-rd w) (if (< s t) 1 0) #f)
+            (rf-set rf
+                    (word-rd w)
+                    (unsigned->bytes (if (< s t) 1 0)))
             mem)))
 
 
@@ -187,7 +184,7 @@
             (raise-user-error 'jr "$rd is expected to be zero for opcode jr"))
 
           (list
-            (registerfile-set rf 'PC (registerfile-ref rf (word-rs w)))
+            (rf-set rf 'PC (rf-ref rf (word-rs w)))
             mem)))
 
 
@@ -196,10 +193,10 @@
         'jalr
         (lambda (w rf mem)
           (list
-            (registerfile-set-swap
+            (rf-set-swap
               rf
-              (word-rs w) (registerfile-ref rf 'PC)
-              'PC (registerfile-ref rf (word-rs w)))
+              (word-rs w) (rf-ref rf 'PC)
+              'PC (rf-ref rf (word-rs w)))
             mem)))
 
       )))

@@ -33,13 +33,13 @@
 ;; wrapper function to run everything
 (define/contract
   (run-cpu rf mem)
-  (registerfile? memory? . -> . void?)
+  (rf? memory? . -> . void?)
   (fetch rf mem))
 
 ;; fetch :: get next instruction from memory and update $PC
 (define/contract
   (fetch rf mem)
-  (registerfile? memory? . -> . void?)
+  (rf? memory? . -> . void?)
 
   ;; TODO remove? global state for loop timer =================================
   (when (show-verbose)
@@ -53,7 +53,7 @@
   (cycle-count (add1 (cycle-count)))
   ;; ==========================================================================
 
-  (define pc-value (registerfile-integer-ref rf 'PC #f))
+  (define pc-value (bytes->unsigned (rf-ref rf 'PC)))
   (cond
     [(equal? pc-value return-address)
      (eprintf "MIPS program completed normally.~n")
@@ -62,31 +62,31 @@
                 (cycle-count)
                 (/ (round (- (current-inexact-milliseconds) (start-time))) 1000)
                 (/ (cycle-count) (- (current-inexact-milliseconds) (start-time))))) ; Hz / ms == kHz / s
-     (eprintf "~a~n" (format-registerfile rf))
+     (eprintf "~a~n" (format-rf rf))
      (exit 0)] ; quit gracefully
     [else
         (when (show-binary)
           (printf "~a: ~a~n"
-                  (format-word-hex (bytes->word (registerfile-ref rf 'PC)))
+                  (format-word-hex (bytes->word (rf-ref rf 'PC)))
                   (format-word-binary (bytes->word (memory-ref mem pc-value)))))
 
         (decode
-          (registerfile-set-swap
+          (rf-set-swap
             rf
             'IR (memory-ref mem pc-value)
-            'PC (integer->integer-bytes (+ pc-value 4) word-size #f #t))
+            'PC (unsigned->bytes (+ pc-value 4)))
           mem)]))
 
 ;; decode :: interpret the current instruction
 (define/contract (decode rf mem)
-                 (registerfile? memory? . -> . void?)
-                 (execute (bytes->word (registerfile-ref rf 'IR)) rf mem))
+                 (rf? memory? . -> . void?)
+                 (execute (bytes->word (rf-ref rf 'IR)) rf mem))
 
 
 ;; execute :: update rf and/or memory based on instruction
 (define/contract
   (execute w rf mem)
-  (word? registerfile? memory? . -> . void?)
+  (word? rf? memory? . -> . void?)
   (printf "~a~n" (hash-ref opcode-to-name (word-op w)))
   (apply
     fetch

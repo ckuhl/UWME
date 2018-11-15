@@ -10,7 +10,8 @@
          memory-end-of-program ; get the ending point of the binary payload
          memory-set-pairs) ; set a series of memory address as a list of key-value pairs
 
-(require racket/contract)
+(require racket/contract
+  "word.rkt")
 
 
 ;; Constants
@@ -54,12 +55,6 @@
             key
             (lambda () (memory-default mem))))
 
-;; Utility function to get and convert in one step
-(define/contract
-  (memory-integer-ref mem key signed)
-  (memory? exact-nonnegative-integer? boolean? . -> . exact-integer?)
-  (integer-bytes->integer (memory-ref mem key) word-size signed #t))
-
 ;; Set element at index
 (define/contract
   (memory-set mem key v)
@@ -68,11 +63,6 @@
           (memory-default mem)
           (memory-_program-end mem)
           (hash-set (memory-_hash mem) key v)))
-
-(define/contract
-  (memory-integer-set mem key v)
-  (memory? exact-nonnegative-integer? integer? . -> . memory?)
-  (memory-set mem key (integer->integer-bytes v word-size #f #t)))
 
 ; set a series of memory indices at once
 (define/contract
