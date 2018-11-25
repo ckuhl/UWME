@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-MAIN=initialize
+MAIN=commandline
 EXAMPLE_DIR=examples
 COLLATZ=${EXAMPLE_DIR}/collatz.mips
 FIBB=${EXAMPLE_DIR}/fibonacci.mips
