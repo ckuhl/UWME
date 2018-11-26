@@ -5,7 +5,6 @@
   decoded)
 
 (require
-  "../boot-vm.rkt"
   "../bytes.rkt")
 
 

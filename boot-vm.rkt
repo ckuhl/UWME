@@ -9,6 +9,7 @@
 (require racket/list
          racket/hash
 
+         "vm.rkt"
          "binary-loader.rkt"
          "bytes.rkt")
 
@@ -29,10 +30,9 @@
               (cons 30 (unsigned->word stack-pointer))
               (cons 31 (unsigned->word return-address))
               (cons 'PC (bytes 0 0 0 0))
+              (cons 'MAR (bytes 0 0 0 0))
+              (cons 'MDR (bytes 0 0 0 0))
               (cons 'HILO (bytes 0 0 0 0 0 0 0 0))))))
-
-;; Wrapper for registers / memory / PC
-(define-struct vm (rf mem) #:transparent)
 
 (define default-vm (make-vm register-hash (make-immutable-hash)))
 
@@ -47,17 +47,16 @@
 ;; Load two integers into registers $1 and $2 from CLI
 (define (load-twoints machine)
   (define new-rf
-    (hash-set*
-      (vm-rf machine)
+    (set-register
+      (set-register
+        machine
       1
       (begin (eprintf "Enter value for register 1: ")
-             (signed->word (read)))
+             (signed->word (read))))
       2
       (begin (eprintf "Enter value for register 2: ")
-             (signed->word (read)))))
-  (struct-copy
-    vm machine
-    [rf new-rf]))
+             (signed->word (read))))))
+
 
 ;; Load array into vm from CLI
 (define (load-array machine)

@@ -3,14 +3,14 @@
 (provide execute)
 
 (require racket/match
-         "../boot-vm.rkt"
+         "../vm.rkt"
          "../bytes.rkt"
          "decode.rkt")
 
 ;; Execute an instruction -- i.e. calculate a value
 (define/match (execute instr)
-  [((decoded #b000000 rs rt rd 0 #b100000 _)) (three + rs rt rd)]
-  [((decoded #b000000 rs rt rd 0 #b100010 _)) (three - rs rt rd)]
+  [((decoded #b000000 rs rt rd 0 #b100000 _)) (add rs rt rd)]
+  [((decoded #b000000 rs rt rd 0 #b100010 _)) (sub rs rt rd)]
   [((decoded #b000000 rs rt  0 0 #b011000 _)) (mult rs rt)]
   [((decoded #b000000 rs rt  0 0 #b011001 _)) (multu rs rt)]
   [((decoded #b000000 rs rt  0 0 #b011010 _)) (div rs rt)]
@@ -31,240 +31,186 @@
   [(unknown) (raise-user-error 'EX "Unknown instruction ~V~n" unknown)])
 
 
-;; add / sub
-(define (three op rs rt rd)
+;; add
+(define (add rs rt rd)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define calculated (unsigned->word
-                         (op (bytes->unsigned source)
+                         (+ (bytes->unsigned source)
                              (bytes->unsigned target))))
+    (register-set machine rd calculated)))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf rd calculated)])))
 
-;; mult
+;; Subtract
+(define (sub rs rt rd)
+  (lambda (machine)
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
+    (define calculated (unsigned->word
+                         (- (bytes->unsigned source)
+                             (bytes->unsigned target))))
+    (register-set machine rd calculated)))
+
+
+;; Multiply (signed)
 (define (mult rs rt)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define calculated (signed->dword
                          (*  (bytes->signed source)
                              (bytes->signed target))))
+    (register-set 'HILO calculated)))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'HILO calculated)])))
-
-;; multu
+;; Multiply unsigned
 (define (multu rs rt)
   (lambda (machine)
-    (define rf (vm-rf machine))
 
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define calculated (unsigned->dword
                          (*  (bytes->unsigned source)
                              (bytes->unsigned target))))
+    (register-set rf 'HILO calculated)))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'HILO calculated)])))
 
-;; div
+;; Divide (signed)
 (define (div rs rt)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
-
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define hi (signed->dword
                  (quotient (bytes->signed source)
                            (bytes->signed target))))
     (define lo (signed->dword
                  (remainder (bytes->signed source)
                             (bytes->signed target))))
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'HILO (bytes-append hi lo))])))
+    (register-set 'HILO (bytes-append hi lo))))
 
-;; divu
+
+;; Divide unsigned
 (define (divu rs rt)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
-
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define hi (unsigned->dword
                  (quotient (bytes->unsigned source)
                            (bytes->unsigned target))))
     (define lo (unsigned->dword
                  (remainder (bytes->unsigned source)
                             (bytes->unsigned target))))
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'HILO (bytes-append hi lo))])))
+    (register-set machine 'HILO (bytes-append hi lo))))
 
-;; mfhi
+
+;; Move from $HI
 (define (mfhi rd)
   (lambda (machine)
-    (define rf (vm-rf machine))
-    (define hi (subbytes (hash-ref rf 'HILO) 0 4))
-    (struct-copy
-      vm machine
-      [rf (hash-set rf rd hi)])))
+    (define hi (subbytes (get-register machine 'HILO) 0 4))
+    (register-set machine rd hi)))
 
-;; mflo
+
+;; Move from $LO
 (define (mflo rd)
   (lambda (machine)
-    (define rf (vm-rf machine))
-    (define lo (subbytes (hash-ref rf 'HILO) 4 8))
-    (struct-copy
-      vm machine
-      [rf (hash-set rf rd lo)])))
+    (define lo (subbytes (get-register machine 'HILO) 4 8))
+    (register-set machine rd lo)))
 
-;; lis
+
+;; Load immediate (and) skip
+;;   NOTE: This is neither an immediate type instruction, nor does it load
+;;   the immediate value
 (define (lis rd)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
     (define mem (vm-mem machine))
-    (define pc (hash-ref rf 'PC))
+    (define pc (get-register machine 'PC))
     (define loaded (hash-ref mem (bytes->unsigned pc)))
     (define next-pc (unsigned->word (+ 4 (bytes->signed pc))))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set* rf
-                     rd loaded
-                     'PC next-pc)])))
+    (register-set (register-set machine rd loaded) 'PC next-pc)))
 
+
+;; Load word (from memory)
 (define (lw rs rt i)
   (lambda (machine)
-    (define rf (vm-rf machine))
-    (define mem (vm-mem machine))
-
-    (define source (hash-ref rf rs))
+    (define source (get-register machine rs))
     (define address (+ (bytes->unsigned source) i))
-    (define loaded (hash-ref mem address))
+    (define loaded (memory-get address))
+    (register-set rt loaded)))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf rt loaded)])))
 
+;; Store word (to memory)
 (define (sw rs rt i)
   (lambda (machine)
-    (define rf (vm-rf machine))
-    (define mem (vm-mem machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define address (+ (bytes->unsigned source) i))
+    (memory-set address target)))
 
-    (struct-copy
-      vm machine
-      [mem (hash-set mem address target)])))
 
-;; slt
+;; Set (if) less than
 (define (slt rs rt rd)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
-
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define result
       (if (< (bytes->signed source) (bytes->signed target))
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
-
-    (struct-copy
-      vm machine
-      [rf (hash-set rf rd result)])))
+    (register-set rd result)))
 
 
-;; sltu
+;; Set (if) less than; unsigned
 (define (sltu rs rt rd)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
-
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
     (define result
       (if (< (bytes->unsigned source) (bytes->unsigned target))
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
+    (register-set rd result)))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf rd result)])))
 
-;; beq
+;; Break (if) equal
 (define (beq rs rt i)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
-    (define pc (hash-ref rf 'PC))
-
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
+    (define pc (get-register machine 'PC))
     (define new-pc
       (if (equal? source target)
         (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))
         pc))
-
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'PC new-pc)])))
+    (register-set'PC new-pc))
 
 
-;; bne
+;; Break (if) not equal
 (define (bne rs rt i)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define target (hash-ref rf rt))
-    (define pc (hash-ref rf 'PC))
-
-    
+    (define source (get-register machine rs))
+    (define target (get-register machine rt))
+    (define pc (get-register machine 'PC))
     (define new-pc
       (if (equal? source target)
         pc
         (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))))
+    (register-set machine 'PC new-pc))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'PC new-pc)])))
 
+;; Jump register
 (define (jr rs)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
+    (define source (get-register machine rs))
 
     (define return-address (bytes #x81 #x23 #x45 #x6c))
     (when (equal? source return-address) (exit))
+    (register-set 'PC source)))
 
-    (struct-copy
-      vm machine
-      [rf (hash-set rf 'PC source)])))
 
+;; Jump and link register
 (define (jalr rs)
   (lambda (machine)
-    (define rf (vm-rf machine))
-
-    (define source (hash-ref rf rs))
-    (define pc-value (hash-ref rf 'PC))
-
-    (struct-copy
-      vm machine
-      [rf (hash-set* rf 'PC source rs pc-value)])))
+    (define source (get-register machine rs))
+    (define pc-value (get-register machine 'PC)))
+    (register-set (register-set machine 'PC source) rs pc-value)))
