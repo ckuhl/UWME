@@ -3,12 +3,12 @@
 (provide (rename-out [main-loop start]))
 
 (require
-         "vm.rkt" ; for vm structure
-		     "bytes.rkt"
+  "vm.rkt" ; for vm structure
+  "bytes.rkt"
 
-         "stage/fetch.rkt"
-         "stage/decode.rkt"
-         "stage/execute.rkt")
+  "stage/fetch.rkt"
+  "stage/decode.rkt"
+  "stage/execute.rkt")
 
 (define (main-loop machine [count 0])
   (define fetched (fetch   machine))

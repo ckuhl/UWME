@@ -50,9 +50,9 @@
     (set-register
       (set-register
         machine
-      1
-      (begin (eprintf "Enter value for register 1: ")
-             (signed->word (read))))
+        1
+        (begin (eprintf "Enter value for register 1: ")
+               (signed->word (read))))
       2
       (begin (eprintf "Enter value for register 2: ")
              (signed->word (read))))))

@@ -11,4 +11,3 @@ all: $(ASM:.asm=.mips)
 
 clean:
 	rm *.mips
-

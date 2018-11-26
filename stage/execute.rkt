@@ -38,7 +38,7 @@
     (define target (get-register machine rt))
     (define calculated (unsigned->word
                          (+ (bytes->unsigned source)
-                             (bytes->unsigned target))))
+                            (bytes->unsigned target))))
     (register-set machine rd calculated)))
 
 
@@ -49,7 +49,7 @@
     (define target (get-register machine rt))
     (define calculated (unsigned->word
                          (- (bytes->unsigned source)
-                             (bytes->unsigned target))))
+                            (bytes->unsigned target))))
     (register-set machine rd calculated)))
 
 
@@ -185,32 +185,32 @@
     (register-set'PC new-pc))
 
 
-;; Break (if) not equal
-(define (bne rs rt i)
-  (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
-    (define pc (get-register machine 'PC))
-    (define new-pc
-      (if (equal? source target)
-        pc
-        (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))))
-    (register-set machine 'PC new-pc))
+  ;; Break (if) not equal
+  (define (bne rs rt i)
+    (lambda (machine)
+      (define source (get-register machine rs))
+      (define target (get-register machine rt))
+      (define pc (get-register machine 'PC))
+      (define new-pc
+        (if (equal? source target)
+          pc
+          (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))))
+      (register-set machine 'PC new-pc))
 
 
-;; Jump register
-(define (jr rs)
-  (lambda (machine)
-    (define source (get-register machine rs))
+    ;; Jump register
+    (define (jr rs)
+      (lambda (machine)
+        (define source (get-register machine rs))
 
-    (define return-address (bytes #x81 #x23 #x45 #x6c))
-    (when (equal? source return-address) (exit))
-    (register-set 'PC source)))
+        (define return-address (bytes #x81 #x23 #x45 #x6c))
+        (when (equal? source return-address) (exit))
+        (register-set 'PC source)))
 
 
-;; Jump and link register
-(define (jalr rs)
-  (lambda (machine)
-    (define source (get-register machine rs))
-    (define pc-value (get-register machine 'PC)))
-    (register-set (register-set machine 'PC source) rs pc-value)))
+    ;; Jump and link register
+    (define (jalr rs)
+      (lambda (machine)
+        (define source (get-register machine rs))
+        (define pc-value (get-register machine 'PC)))
+      (register-set (register-set machine 'PC source) rs pc-value)))

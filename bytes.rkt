@@ -19,7 +19,7 @@
   (test-case
     (check-equal?
       (bytes->signed (bytes #x00 #x00 #x00 #x00))
-      0 
+      0
       "smallest unsigned integer"))
   (test-case
     (check-equal?
@@ -45,7 +45,7 @@
   (test-case
     (check-equal?
       (bytes->unsigned (bytes #x00 #x00 #x00 #x00))
-      0 
+      0
       "smallest unsigned integer"))
   (test-case
     (check-equal?
@@ -63,7 +63,6 @@
 
 (define (unsigned->word n)
   (integer->integer-bytes n 4 #f #t))
-
 
 (define (signed->dword n)
   (integer->integer-bytes n 8 #t #t))
