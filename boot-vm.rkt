@@ -1,7 +1,6 @@
 #lang racket/base
 
-(provide (struct-out vm)
-         default-vm
+(provide default-vm
          load-file
          load-twoints
          load-array)
@@ -46,16 +45,15 @@
 
 ;; Load two integers into registers $1 and $2 from CLI
 (define (load-twoints machine)
-  (define new-rf
-    (set-register
-      (set-register
+    (register-set
+      (register-set
         machine
         1
         (begin (eprintf "Enter value for register 1: ")
                (signed->word (read))))
       2
       (begin (eprintf "Enter value for register 2: ")
-             (signed->word (read))))))
+             (signed->word (read)))))
 
 
 ;; Load array into vm from CLI

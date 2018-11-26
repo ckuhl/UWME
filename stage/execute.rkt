@@ -34,8 +34,8 @@
 ;; add
 (define (add rs rt rd)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define calculated (unsigned->word
                          (+ (bytes->unsigned source)
                             (bytes->unsigned target))))
@@ -45,8 +45,8 @@
 ;; Subtract
 (define (sub rs rt rd)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define calculated (unsigned->word
                          (- (bytes->unsigned source)
                             (bytes->unsigned target))))
@@ -56,44 +56,44 @@
 ;; Multiply (signed)
 (define (mult rs rt)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define calculated (signed->dword
                          (*  (bytes->signed source)
                              (bytes->signed target))))
-    (register-set 'HILO calculated)))
+    (register-set machine 'HILO calculated)))
 
 ;; Multiply unsigned
 (define (multu rs rt)
   (lambda (machine)
 
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define calculated (unsigned->dword
                          (*  (bytes->unsigned source)
                              (bytes->unsigned target))))
-    (register-set rf 'HILO calculated)))
+    (register-set machine 'HILO calculated)))
 
 
 ;; Divide (signed)
 (define (div rs rt)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define hi (signed->dword
                  (quotient (bytes->signed source)
                            (bytes->signed target))))
     (define lo (signed->dword
                  (remainder (bytes->signed source)
                             (bytes->signed target))))
-    (register-set 'HILO (bytes-append hi lo))))
+    (register-set machine 'HILO (bytes-append hi lo))))
 
 
 ;; Divide unsigned
 (define (divu rs rt)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define hi (unsigned->dword
                  (quotient (bytes->unsigned source)
                            (bytes->unsigned target))))
@@ -106,14 +106,14 @@
 ;; Move from $HI
 (define (mfhi rd)
   (lambda (machine)
-    (define hi (subbytes (get-register machine 'HILO) 0 4))
+    (define hi (subbytes (register-get machine 'HILO) 0 4))
     (register-set machine rd hi)))
 
 
 ;; Move from $LO
 (define (mflo rd)
   (lambda (machine)
-    (define lo (subbytes (get-register machine 'HILO) 4 8))
+    (define lo (subbytes (register-get machine 'HILO) 4 8))
     (register-set machine rd lo)))
 
 
@@ -123,7 +123,7 @@
 (define (lis rd)
   (lambda (machine)
     (define mem (vm-mem machine))
-    (define pc (get-register machine 'PC))
+    (define pc (register-get machine 'PC))
     (define loaded (hash-ref mem (bytes->unsigned pc)))
     (define next-pc (unsigned->word (+ 4 (bytes->signed pc))))
 
@@ -133,84 +133,84 @@
 ;; Load word (from memory)
 (define (lw rs rt i)
   (lambda (machine)
-    (define source (get-register machine rs))
+    (define source (register-get machine rs))
     (define address (+ (bytes->unsigned source) i))
     (define loaded (memory-get address))
-    (register-set rt loaded)))
+    (register-set machine rt loaded)))
 
 
 ;; Store word (to memory)
 (define (sw rs rt i)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define address (+ (bytes->unsigned source) i))
-    (memory-set address target)))
+    (memory-set machine address target)))
 
 
 ;; Set (if) less than
 (define (slt rs rt rd)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define result
       (if (< (bytes->signed source) (bytes->signed target))
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
-    (register-set rd result)))
+    (register-set machine rd result)))
 
 
 ;; Set (if) less than; unsigned
 (define (sltu rs rt rd)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
     (define result
       (if (< (bytes->unsigned source) (bytes->unsigned target))
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
-    (register-set rd result)))
+    (register-set machine rd result)))
 
 
 ;; Break (if) equal
 (define (beq rs rt i)
   (lambda (machine)
-    (define source (get-register machine rs))
-    (define target (get-register machine rt))
-    (define pc (get-register machine 'PC))
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
+    (define pc (register-get machine 'PC))
     (define new-pc
       (if (equal? source target)
         (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))
         pc))
-    (register-set'PC new-pc))
+    (register-set machine 'PC new-pc)))
 
 
-  ;; Break (if) not equal
-  (define (bne rs rt i)
-    (lambda (machine)
-      (define source (get-register machine rs))
-      (define target (get-register machine rt))
-      (define pc (get-register machine 'PC))
-      (define new-pc
-        (if (equal? source target)
-          pc
-          (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))))
-      (register-set machine 'PC new-pc))
+;; Break (if) not equal
+(define (bne rs rt i)
+  (lambda (machine)
+    (define source (register-get machine rs))
+    (define target (register-get machine rt))
+    (define pc (register-get machine 'PC))
+    (define new-pc
+      (if (equal? source target)
+        pc
+        (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))))
+    (register-set machine 'PC new-pc)))
 
 
-    ;; Jump register
-    (define (jr rs)
-      (lambda (machine)
-        (define source (get-register machine rs))
+;; Jump register
+(define (jr rs)
+  (lambda (machine)
+    (define source (register-get machine rs))
 
-        (define return-address (bytes #x81 #x23 #x45 #x6c))
-        (when (equal? source return-address) (exit))
-        (register-set 'PC source)))
+    (define return-address (bytes #x81 #x23 #x45 #x6c))
+    (when (equal? source return-address) (exit))
+    (register-set machine 'PC source)))
 
 
-    ;; Jump and link register
-    (define (jalr rs)
-      (lambda (machine)
-        (define source (get-register machine rs))
-        (define pc-value (get-register machine 'PC)))
-      (register-set (register-set machine 'PC source) rs pc-value)))
+;; Jump and link register
+(define (jalr rs)
+  (lambda (machine)
+    (define source (register-get machine rs))
+    (define pc-value (register-get machine 'PC))
+    (register-set (register-set machine 'PC source) rs pc-value)))
