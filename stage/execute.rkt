@@ -36,9 +36,7 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define calculated (unsigned->word
-                         (+ (bytes->unsigned source)
-                            (bytes->unsigned target))))
+    (define calculated (bytes-apply + #:signed? #f source target))
     (register-set machine rd calculated)))
 
 
@@ -47,9 +45,7 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define calculated (unsigned->word
-                         (- (bytes->unsigned source)
-                            (bytes->unsigned target))))
+    (define calculated (bytes-apply - #:signed? #f source target))
     (register-set machine rd calculated)))
 
 
@@ -58,21 +54,16 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define calculated (signed->dword
-                         (*  (bytes->signed source)
-                             (bytes->signed target))))
+    (define calculated (bytes-apply * #:signed? #t #:size-n 8 source target))
     (register-set machine 'HILO calculated)))
 
 ;; Multiply unsigned
 (define (multu rs rt)
   (lambda (machine)
-
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define calculated (unsigned->dword
-                         (*  (bytes->unsigned source)
-                             (bytes->unsigned target))))
-    (register-set machine 'HILO calculated)))
+    (register-set machine 'HILO
+                  (bytes-apply * #:signed? #f #:size-n 8 source target))))
 
 
 ;; Divide (signed)
@@ -80,12 +71,8 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define hi (signed->dword
-                 (quotient (bytes->signed source)
-                           (bytes->signed target))))
-    (define lo (signed->dword
-                 (remainder (bytes->signed source)
-                            (bytes->signed target))))
+    (define hi (bytes-apply quotient #:signed? #t source target))
+    (define lo (bytes-apply remainder #:signed? #t source target))
     (register-set machine 'HILO (bytes-append hi lo))))
 
 
@@ -94,12 +81,8 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define hi (unsigned->dword
-                 (quotient (bytes->unsigned source)
-                           (bytes->unsigned target))))
-    (define lo (unsigned->dword
-                 (remainder (bytes->unsigned source)
-                            (bytes->unsigned target))))
+    (define hi (bytes-apply quotient #:signed? #f source target))
+    (define lo (bytes-apply remainder #:signed? #f source target))
     (register-set machine 'HILO (bytes-append hi lo))))
 
 
@@ -122,10 +105,9 @@
 ;;   the immediate value
 (define (lis rd)
   (lambda (machine)
-    (define mem (vm-mem machine))
     (define pc (register-get machine 'PC))
-    (define loaded (hash-ref mem (bytes->unsigned pc)))
-    (define next-pc (unsigned->word (+ 4 (bytes->signed pc))))
+    (define loaded (memory-get machine (bytes->integer pc #:signed? #f)))
+    (define next-pc (bytes-apply + #:signed? #t (bytes 4) pc))
 
     (register-set (register-set machine rd loaded) 'PC next-pc)))
 
@@ -134,9 +116,8 @@
 (define (lw rs rt i)
   (lambda (machine)
     (define source (register-get machine rs))
-    (define address (+ (bytes->unsigned source) i))
-    (define loaded (memory-get address))
-    (register-set machine rt loaded)))
+    (define address (+ (bytes->integer source #:signed? #f) i))
+    (register-set machine rt (memory-get address))))
 
 
 ;; Store word (to memory)
@@ -144,7 +125,7 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define target (register-get machine rt))
-    (define address (+ (bytes->unsigned source) i))
+    (define address (+ (bytes->integer source #:signed? #f) i))
     (memory-set machine address target)))
 
 
@@ -154,7 +135,7 @@
     (define source (register-get machine rs))
     (define target (register-get machine rt))
     (define result
-      (if (< (bytes->signed source) (bytes->signed target))
+      (if (< (bytes->integer source #:signed? #t) (bytes->integer target #:signed? #t))
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
     (register-set machine rd result)))
@@ -166,7 +147,7 @@
     (define source (register-get machine rs))
     (define target (register-get machine rt))
     (define result
-      (if (< (bytes->unsigned source) (bytes->unsigned target))
+      (if (bytes<? source target)
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
     (register-set machine rd result)))
@@ -175,13 +156,14 @@
 ;; Break (if) equal
 (define (beq rs rt i)
   (lambda (machine)
-    (define source (register-get machine rs))
-    (define target (register-get machine rt))
     (define pc (register-get machine 'PC))
     (define new-pc
-      (if (equal? source target)
-        (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))
-        pc))
+      (if (equal? (register-get machine rs)
+                  (register-get machine rt))
+        (integer->bytes (+ (* 4 i)
+                           (bytes->integer pc #:signed? #f))
+                        #:size-n 4 #:signed? #f)
+      pc))
     (register-set machine 'PC new-pc)))
 
 
@@ -192,9 +174,10 @@
     (define target (register-get machine rt))
     (define pc (register-get machine 'PC))
     (define new-pc
-      (if (equal? source target)
+      (if (equal? (register-get machine rs)
+                  (register-get machine rt))
         pc
-        (unsigned->word (+ (* 4 i) (bytes->unsigned pc)))))
+        (integer->bytes (+ (* 4 i #:size-n 4 #:signed? #f) (bytes->integer pc #:signed? #f)))))
     (register-set machine 'PC new-pc)))
 
 
@@ -202,7 +185,6 @@
 (define (jr rs)
   (lambda (machine)
     (define source (register-get machine rs))
-
     (define return-address (bytes #x81 #x23 #x45 #x6c))
     (when (equal? source return-address) (exit))
     (register-set machine 'PC source)))

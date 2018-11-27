@@ -29,4 +29,4 @@
     (bitwise-bit-field integer-value 11 16)
     (bitwise-bit-field integer-value  6 11)
     (bitwise-bit-field integer-value  0  6)
-    (bytes->signed (subbytes bstr 2 4))))
+    (bytes->integer (subbytes bstr 2 4) #:signed? #t)))

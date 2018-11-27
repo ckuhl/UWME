@@ -19,6 +19,6 @@
 
   ;; Increment PC here for right now...
   (define pc (hash-ref (vm-rf machine) 'PC))
-  (define new-pc (unsigned->word (+ 4 (bytes->unsigned pc))))
+  (define new-pc (bytes-apply + #:signed? #f (bytes 4) pc))
   (define new-machine (register-set machine 'PC new-pc))
   (main-loop (updated new-machine) (add1 count)))

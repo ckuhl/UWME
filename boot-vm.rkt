@@ -23,15 +23,15 @@
 (define return-address #x8123456c)
 (define register-hash
   (make-immutable-hash
-    (append (for/list ([i (range 1 30)]) (cons i (bytes 0 0 0 0)))
+    (append (for/list ([i (range 1 30)]) (cons i (make-bytes 4 0)))
             (list
-              (cons 0 (bytes 0 0 0 0))
-              (cons 30 (unsigned->word stack-pointer))
-              (cons 31 (unsigned->word return-address))
-              (cons 'PC (bytes 0 0 0 0))
-              (cons 'MAR (bytes 0 0 0 0))
-              (cons 'MDR (bytes 0 0 0 0))
-              (cons 'HILO (bytes 0 0 0 0 0 0 0 0))))))
+              (cons 0 (make-bytes 4 0))
+              (cons 30 (integer->bytes stack-pointer #:size-n 4 #:signed? #f))
+              (cons 31 (integer->bytes return-address #:size-n 4 #:signed? #f))
+              (cons 'PC (make-bytes 4 0))
+              (cons 'MAR (make-bytes 4 0))
+              (cons 'MDR (make-bytes 4 0))
+              (cons 'HILO (make-bytes 8 0))))))
 
 (define default-vm (make-vm register-hash (make-immutable-hash)))
 
@@ -50,10 +50,10 @@
         machine
         1
         (begin (eprintf "Enter value for register 1: ")
-               (signed->word (read))))
+               (integer->bytes (read) #:size-n 4 #:signed? #t)))
       2
       (begin (eprintf "Enter value for register 2: ")
-             (signed->word (read)))))
+             (integer->bytes (read) #:size-n 4 #:signed? #t))))
 
 
 ;; Load array into vm from CLI
@@ -68,12 +68,12 @@
       (eprintf "Enter array element ~a: " i)
       (cons
         (+ array-offset (* array-size 4))
-        (signed->word (read)))))
+        (integer->bytes (read) #:size-n 4 #:signed? #t))))
 
   (struct-copy
     vm machine
     [rf (hash-set
           (vm-rf machine)
-          #b00001 (signed->word array-offset)
-          #b00010 (signed->word array-size))]
+          #b00001 (integer->bytes array-offset #:size-n 4 #:signed? #t)
+          #b00010 (integer->bytes array-size #:size-n 4 #:signed? #t))]
     [mem (hash-set mem pairs)]))
