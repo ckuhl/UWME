@@ -7,7 +7,8 @@
          "../bytes.rkt"
          "decode.rkt")
 
-;; Execute an instruction -- i.e. calculate a value
+;; Execute an instruction
+;;  Presently, this covers the EX / MEM / WB stages
 (define/match (execute instr)
   [((decoded #b000000 rs rt rd 0 #b100000 _)) (add rs rt rd)]
   [((decoded #b000000 rs rt rd 0 #b100010 _)) (sub rs rt rd)]
@@ -135,7 +136,8 @@
     (define source (register-get machine rs))
     (define target (register-get machine rt))
     (define result
-      (if (< (bytes->integer source #:signed? #t) (bytes->integer target #:signed? #t))
+      (if (< (bytes->integer source #:signed? #t)
+             (bytes->integer target #:signed? #t))
         (bytes 0 0 0 1)
         (bytes 0 0 0 0)))
     (register-set machine rd result)))
@@ -156,28 +158,26 @@
 ;; Break (if) equal
 (define (beq rs rt i)
   (lambda (machine)
-    (define pc (register-get machine 'PC))
-    (define new-pc
-      (if (equal? (register-get machine rs)
-                  (register-get machine rt))
-        (integer->bytes (+ (* 4 i)
-                           (bytes->integer pc #:signed? #f))
-                        #:size-n 4 #:signed? #f)
-      pc))
+    (define pc (bytes->integer (register-get machine 'PC) #:signed? #f))
+    (define offset
+      (cond
+        [(equal? (register-get machine rs)
+                 (register-get machine rt)) (* 4 i)]
+        [else 0]))
+    (define new-pc (integer->bytes (+ pc offset) #:size-n 4 #:signed? #f))
     (register-set machine 'PC new-pc)))
 
 
 ;; Break (if) not equal
 (define (bne rs rt i)
   (lambda (machine)
-    (define source (register-get machine rs))
-    (define target (register-get machine rt))
-    (define pc (register-get machine 'PC))
-    (define new-pc
-      (if (equal? (register-get machine rs)
-                  (register-get machine rt))
-        pc
-        (integer->bytes (+ (* 4 i #:size-n 4 #:signed? #f) (bytes->integer pc #:signed? #f)))))
+    (define pc (bytes->integer (register-get machine 'PC) #:signed? #f))
+    (define offset
+      (cond
+        [(equal? (register-get machine rs)
+                 (register-get machine rt)) 0]
+        [else (* 4 i)]))
+    (define new-pc (integer->bytes (+ pc offset) #:size-n 4 #:signed? #f))
     (register-set machine 'PC new-pc)))
 
 

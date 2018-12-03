@@ -1,69 +1,55 @@
 #lang racket/base
 
 
-(require racket/contract ; contracts
-         racket/cmdline ; command-line arguments
-         racket/list ; range
-         racket/file ; file->bytes
-
+(require racket/cmdline
+         racket/match
          "boot-vm.rkt"
          "main-loop.rkt")
 
 
-;; Set up and run the virtual machine
-(define (run)
-  (define show-binary (make-parameter #f))
-  (define show-verbose (make-parameter #f))
-  (define show-more (make-parameter #f))
-  (define loader-mode (make-parameter 'none))
+;; Configure the VM struct, then run the program
+(define (start-from-command-line)
+   (define show-verbose (make-parameter #f))
+   (define loader-mode (make-parameter 'none))
 
-  (define source-file
-    (command-line
-      #:program "UWME"
+   (define source-file
+     (command-line
+       #:program "UWME"
 
-      #:once-each
-      [("-b" "--show-binary")
-       "Show the binary code of each instruction after its execution"
-       (show-binary #t)]
+       #:once-each
+       [("-v" "--verbose")
+        "Show verbose output of operation"
+        (show-verbose #t)]
 
-      [("-v" "--verbose")
-       "Show verbose output of operation"
-       (show-verbose #t)]
+       #:once-any
+       ["--none"
+        "Load no addition data"
+        (loader-mode 'none)]
 
-      [("-m" "--more-info")
-       "Show more information on each run"
-       (show-more #t)]
+       ["--twoints"
+        "Load two integers into registers $1 and $2"
+        (loader-mode 'twoints)]
 
-      #:once-any
-      ["--none"
-       "Load no addition data"
-       (loader-mode 'none)]
+       ["--array"
+        "Specify an array length and then that many integers"
+        (loader-mode 'array)]
 
-      ["--twoints"
-       "Load two integers into registers $1 and $2"
-       (loader-mode 'twoints)]
+       #:args (filename)
 
-      ["--array"
-       "Specify an array length and then that many integers"
-       (loader-mode 'array)]
+       filename))
 
-      #:args (filename) ; one positional argument
+   ;; load program from file
+   (define mem-init (load-file source-file default-vm))
 
-      filename))
+   ;; load registers / memory from stdin
+   (define machine
+     (match (loader-mode)
+       ['twoints (load-twoints mem-init)]
+       ['array (load-array mem-init)]
+       ['none mem-init]))
 
-  ;; load program into virtual machine memory
-  (define mem-init (load-file source-file default-vm))
+   (eprintf "Running MIPS program.~n")
+   (start machine))
 
-  ;; load registers from command line
-  (define machine
-    (cond
-      [(equal? (loader-mode) 'twoints) (load-twoints mem-init)]
-      [(equal? (loader-mode) 'array) (load-array mem-init)]
-      [else mem-init]))
 
-  ;; run virtual machine
-  (eprintf "Running MIPS program.~n")
-  (start machine)) ; TODO
-
-; TODO
-(run)
+(start-from-command-line)

@@ -14,15 +14,13 @@ debug: ## Run a demonstration program with debugging enabled
 	# 47 is the largest fibonacci number that fits in a 32 bit integer
 	echo "0 47" | racket -l errortrace -u ${MAIN}.rkt \
 		--twoints \
-		--more-info \
 		--verbose \
-		--show-binary \
 		${COLLATZ}
 
 demo: ## Run a series of demonstration programs
 	# 77031 has the longest number of iterations of any number under 100K
-	echo "0 77031" | racket ${MAIN}.rkt --twoints --more-info ${COLLATZ}
-	echo "0 47" | racket ${MAIN}.rkt --twoints --more-info ${FIBB}
+	echo "0 77031" | racket ${MAIN}.rkt --twoints ${COLLATZ}
+	echo "0 47" | racket ${MAIN}.rkt --twoints ${FIBB}
 
 help: ## Print this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
