@@ -33,7 +33,7 @@
   (test-equal?
     "largest unsigned 32 bit integer"
     (bytes->integer (bytes #xff #xff #xff #xff) #:signed? #f)
-    4294967296)
+    4294967295)
   (test-equal?
     "smallest unsigned 32 bit integer"
     (bytes->integer (bytes #x00 #x00 #x00 #x00) #:signed? #f)
@@ -59,35 +59,35 @@
   (require rackunit)
   (test-equal?
     "largest unsigned 32 bit integer"
-    (bytes->integer -1 #:signed? #t #:size 2)
+    (integer->bytes -1 #:signed? #t #:size-n 2)
     (bytes #xff #xff))
   (test-equal?
     "smallest unsigned 32 bit integer"
-    (bytes->integer 0 #:signed? #t #:size 1)
+    (integer->bytes 0 #:signed? #t #:size-n 1)
     (bytes #x00))
   (test-equal?
     "largest signed 32 bit integer"
-    (bytes->integer 2147483647 #:signed? #t)
+    (integer->bytes 2147483647 #:signed? #t)
     (bytes #x7f #xff #xff #xff))
   (test-equal?
     "smallest signed 32 bit integer"
-    (bytes->integer -2147483648 #:signed? #t)
+    (integer->bytes -2147483648 #:signed? #t)
     (bytes #x80 #x00 #x00 #x00))
   (test-equal?
     "largest unsigned 32 bit integer"
-    (bytes->integer 4294967296 #:signed? #f)
+    (integer->bytes 4294967295 #:signed? #f)
     (bytes #xff #xff #xff #xff))
   (test-equal?
     "smallest unsigned 32 bit integer"
-    (bytes->integer 0 #:signed? #f)
+    (integer->bytes 0 #:signed? #f)
     (bytes #x00 #x00 #x00 #x00))
   (test-equal?
     "largest signed 32 bit integer"
-    (bytes->integer 2147483647 #:signed? #f)
+    (integer->bytes 2147483647 #:signed? #f)
     (bytes #x7f #xff #xff #xff))
   (test-equal?
     "smallest signed 32 bit integer"
-    (bytes->integer 2147483648 #:signed? #f)
+    (integer->bytes 2147483648 #:signed? #f)
     (bytes #x80 #x00 #x00 #x00)))
 
 
@@ -108,7 +108,7 @@
   (require rackunit)
   (test-equal?
     "Unsigned and size of 1"
-    (bytes-apply + #:signed? #f #:size? 1 (bytes 50) (bytes 25) (bytes 15) (bytes 10))
+    (bytes-apply + #:signed? #f #:size-n 1 (bytes 50) (bytes 25) (bytes 15) (bytes 10))
     (bytes 100))
   (test-equal?
     "Signed and default size"
@@ -116,5 +116,9 @@
     (bytes 0 0 0 0))
   (test-equal?
     "Unsigned and multi-byte bytestrings"
-    (bytes-apply + #:signed? #f (bytes 10 0 0 0) (bytes 10 0 0) (bytes 10 0) (bytes 10))
+    (bytes-apply + #:signed? #f
+                 (bytes 10  0  0  0)
+                 (bytes  0 10  0  0)
+                 (bytes  0  0 10  0)
+                 (bytes  0  0  0 10))
     (bytes 10 10 10 10)))
