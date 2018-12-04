@@ -186,7 +186,8 @@
   (lambda (machine)
     (define source (register-get machine rs))
     (define return-address (bytes #x81 #x23 #x45 #x6c))
-    (when (equal? source return-address) (exit))
+    (when (equal? source return-address)
+      (begin (vm-eprint machine) (exit)))
     (register-set machine 'PC source)))
 
 

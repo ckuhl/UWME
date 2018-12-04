@@ -6,7 +6,7 @@ COLLATZ=${EXAMPLE_DIR}/collatz.mips
 FIBB=${EXAMPLE_DIR}/fibonacci.mips
 
 
-.PHONY: clean debug run help
+.PHONY: clean debug run test help
 clean: ## Remove temporary files
 	rm -rf compiled/
 
@@ -21,6 +21,10 @@ demo: ## Run a series of demonstration programs
 	# 77031 has the longest number of iterations of any number under 100K
 	echo "0 77031" | racket ${MAIN}.rkt --twoints ${COLLATZ}
 	echo "0 47" | racket ${MAIN}.rkt --twoints ${FIBB}
+
+test: ## Run tests
+	raco test bytes.rkt
+	raco test vm.rkt
 
 help: ## Print this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
