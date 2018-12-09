@@ -10,7 +10,8 @@
 
          "vm.rkt"
          "binary-loader.rkt"
-         "bytes.rkt")
+         "bytes.rkt"
+         "decoded.rkt")
 
 ;; Constants
 (define stack-pointer  (bytes #x01 #x00 #x00 #x00))
@@ -21,16 +22,16 @@
   (make-immutable-hash
     (append (for/list ([i (range 0 30)]) (cons i (make-bytes 4 0)))
             (list
-              (cons 30 stack-pointer)
-              (cons 31 return-address)
-              (cons 'PC (make-bytes 4 0))
-              (cons 'MAR (make-bytes 4 0))
-              (cons 'MDR (make-bytes 4 0))
+              (cons    30 stack-pointer)
+              (cons    31 return-address)
+              (cons   'PC (make-bytes 4 0))
+              (cons  'MAR (make-bytes 4 0))
+              (cons  'MDR (make-bytes 4 0))
               (cons 'HILO (make-bytes 8 0))))))
 
 
 ;; Default register values
-(define default-vm (make-vm default-registers (make-immutable-hash)))
+(define default-vm (make-vm default-registers (make-immutable-hash) empty-decoded))
 
 
 ;; Update memory with the file addesses

@@ -4,6 +4,7 @@
 (provide (struct-out vm)
          register-get
          register-set
+         register-set*
          memory-get
          memory-set
          vm-eprint)
@@ -13,18 +14,20 @@
          racket/string ; string-join
          racket/list ; range
 
-         "bytes.rkt")
+         "bytes.rkt"
+         "decoded.rkt")
 
 
 ;; Wrapper for registers / memory / PC
-(define-struct vm (rf mem) #:transparent)
+(define-struct vm (rf mem decoded) #:transparent)
 
 
 ;; Internal helper for testing
 ;; (listof pair?) listof pair? -> vm?
 (define (vm-create #:registers register-values #:memory memory-cells)
   (make-vm (make-immutable-hash register-values)
-           (make-immutable-hash memory-cells)))
+           (make-immutable-hash memory-cells)
+           empty-decoded))
 
 
 ;; get the value of [register] from [machine]
@@ -45,11 +48,10 @@
 ;; Set [register] to [value] and return updated [machine]
 (define (register-set machine register value)
   (cond
-    [(zero? register) machine]
+    [(equal? register 0) machine]
     [else (struct-copy
             vm machine
             [rf (hash-set (vm-rf machine) register value)])]))
-
 
 (module+ test
   (require rackunit)
@@ -62,8 +64,15 @@
   (test-equal?
     "Set zero register (doesn't change value)"
     (register-set (vm-create #:registers (list (cons 0 0)) #:memory empty)
-    0 1)
-  (vm-create #:registers (list (cons 0 0)) #:memory empty)))
+                  0 1)
+    (vm-create #:registers (list (cons 0 0)) #:memory empty)))
+
+
+;; Set pairs of register-values in the registerfile
+(define (register-set* machine . pairs)
+  (foldl (lambda (p m) (register-set m (car p) (cdr p)))
+         machine
+         pairs))
 
 
 ;; the value at [address] in the [machine]'s memory
@@ -76,7 +85,6 @@
   (struct-copy
     vm machine
     [mem (hash-set (vm-mem machine) address value)]))
-
 
 ;; Print out the contents of the registers to stderr
 (define (vm-eprint machine)

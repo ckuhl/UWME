@@ -1,32 +1,14 @@
 #lang racket/base
 
-(provide
-  decode
-  decoded)
+;; Decode the instruction in the MDR into signals
 
-(require
-  "../bytes.rkt")
+(require racket/contract "../vm.rkt")
+(provide/contract [instruction-decode (vm? . -> . vm?)])
+
+(require "../decoded.rkt")
 
 
-(struct decoded
-  (opcode
-    reg-source
-    reg-target
-    reg-dest
-    shamt
-    funct
-    immediate)
-  #:transparent)
-
-;; Decode an instruction into a set of fields
-(define (decode bstr)
-  (define integer-value (integer-bytes->integer bstr #f #t))
-
-  (decoded
-    (bitwise-bit-field integer-value 26 32)
-    (bitwise-bit-field integer-value 21 26)
-    (bitwise-bit-field integer-value 16 21)
-    (bitwise-bit-field integer-value 11 16)
-    (bitwise-bit-field integer-value  6 11)
-    (bitwise-bit-field integer-value  0  6)
-    (bytes->integer (subbytes bstr 2 4) #:signed? #t)))
+(define (instruction-decode machine)
+  (define bstr (register-get machine 'MDR))
+  (struct-copy vm machine
+               [decoded (decoded-create bstr)]))

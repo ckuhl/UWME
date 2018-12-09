@@ -1,24 +1,25 @@
 #lang racket/base
 
+;; Recursively run the stages of the processor until we finish
+
 (provide (rename-out [main-loop start]))
 
 (require
   "vm.rkt" ; for vm structure
-  "bytes.rkt"
 
   "stage/fetch.rkt"
   "stage/decode.rkt"
-  "stage/execute.rkt")
+  "stage/execute.rkt"
+  "stage/memory.rkt"
+  "stage/write-back.rkt")
+
+(define cycle
+  (compose1
+    write-back
+    memory-access
+    execute
+    instruction-decode
+    instruction-fetch))
 
 (define (main-loop machine [count 0])
-  (define fetched (fetch   machine))
-  (define decoded (decode  fetched))
-  (define updated (execute decoded))
-  ;; TODO (define memory-updated (...))
-  ;; TODO (define written-back (...))
-
-  ;; Increment PC here for right now...
-  (define pc (hash-ref (vm-rf machine) 'PC))
-  (define new-pc (bytes-apply + #:signed? #f (bytes 4) pc))
-  (define new-machine (register-set machine 'PC new-pc))
-  (main-loop (updated new-machine) (add1 count)))
+  (main-loop (cycle machine) (add1 count)))

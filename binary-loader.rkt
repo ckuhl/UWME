@@ -4,7 +4,7 @@
 
 (provide file->hash)
 
-(require racket/file
+(require racket/file ; file->bytes
          racket/list) ; empty
 
 

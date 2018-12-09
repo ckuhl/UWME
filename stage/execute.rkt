@@ -1,35 +1,39 @@
 #lang racket/base
 
-(provide execute)
+(require racket/contract "../vm.rkt")
+(provide/contract [execute (vm? . -> . vm?)])
 
 (require racket/match
-         "../vm.rkt"
          "../bytes.rkt"
-         "decode.rkt")
+         "../decoded.rkt")
 
 ;; Execute an instruction
 ;;  Presently, this covers the EX / MEM / WB stages
-(define/match (execute instr)
-  [((decoded #b000000 rs rt rd 0 #b100000 _)) (add rs rt rd)]
-  [((decoded #b000000 rs rt rd 0 #b100010 _)) (sub rs rt rd)]
-  [((decoded #b000000 rs rt  0 0 #b011000 _)) (mult rs rt)]
-  [((decoded #b000000 rs rt  0 0 #b011001 _)) (multu rs rt)]
-  [((decoded #b000000 rs rt  0 0 #b011010 _)) (div rs rt)]
-  [((decoded #b000000 rs rt  0 0 #b011011 _)) (divu rs rt)]
-  [((decoded #b000000  0  0 rd 0 #b010000 _)) (mfhi rd)]
-  [((decoded #b000000  0  0 rd 0 #b010010 _)) (mflo rd)]
-  [((decoded #b000000  0  0 rd 0 #b010100 _)) (lis rd)]
-  [((decoded #b100011 rs rt  _ _        _ i)) (lw rs rt i)]
-  [((decoded #b101011 rs rt  _ _        _ i)) (sw rs rt i)]
-  [((decoded #b000000 rs rt rd 0 #b101010 _)) (slt rs rt rd)]
-  [((decoded #b000000 rs rt rd 0 #b101011 _)) (sltu rs rt rd)]
-  [((decoded #b000100 rs rt  _ _        _ i)) (beq rs rt i)]
-  [((decoded #b000101 rs rt  _ _        _ i)) (bne rs rt i)]
-  [((decoded #b000000 rs  0  0 0 #b001000 _)) (jr rs)]
-  [((decoded #b000000 rs  0  0 0 #b001001 _)) (jalr rs)]
+(define (execute machine)
+  (define decoded-instruction (vm-decoded machine))
+  ((match decoded-instruction
+     [(decoded #b000000 rs rt rd 0 #b100000 _) (add rs rt rd)]
+     [(decoded #b000000 rs rt rd 0 #b100010 _) (sub rs rt rd)]
+     [(decoded #b000000 rs rt  0 0 #b011000 _) (mult rs rt)]
+     [(decoded #b000000 rs rt  0 0 #b011001 _) (multu rs rt)]
+     [(decoded #b000000 rs rt  0 0 #b011010 _) (div rs rt)]
+     [(decoded #b000000 rs rt  0 0 #b011011 _) (divu rs rt)]
+     [(decoded #b000000  0  0 rd 0 #b010000 _) (mfhi rd)]
+     [(decoded #b000000  0  0 rd 0 #b010010 _) (mflo rd)]
+     [(decoded #b000000  0  0 rd 0 #b010100 _) (lis rd)]
+     [(decoded #b100011 rs rt  _ _        _ i) (lw rs rt i)]
+     [(decoded #b101011 rs rt  _ _        _ i) (sw rs rt i)]
+     [(decoded #b000000 rs rt rd 0 #b101010 _) (slt rs rt rd)]
+     [(decoded #b000000 rs rt rd 0 #b101011 _) (sltu rs rt rd)]
+     [(decoded #b000100 rs rt  _ _        _ i) (beq rs rt i)]
+     [(decoded #b000101 rs rt  _ _        _ i) (bne rs rt i)]
+     [(decoded #b000000 rs  0  0 0 #b001000 _) (jr rs)]
+     [(decoded #b000000 rs  0  0 0 #b001001 _) (jalr rs)]
 
-  ;; catch any bad instructions
-  [(unknown) (raise-user-error 'EX "Unknown instruction ~V~n" unknown)])
+     ;; catch any bad instructions
+     [unknown (raise-user-error 'EX "Unknown instruction ~V~n" unknown)])
+
+   machine))
 
 
 ;; add
